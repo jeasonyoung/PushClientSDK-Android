@@ -34,8 +34,9 @@
 	</dependencies>
 
   <build>
-    <finalName>${project.artifactId}</finalName>
+    <finalName>${project.artifactId}-${project.version}</finalName>
     <plugins>
+        <!-- 编译 -->
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
@@ -45,6 +46,12 @@
                 <encoding>${encoding}</encoding>
             </configuration>
         </plugin>
+        <!-- 打包 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+        </plugin>
+
     </plugins>
   </build>
 
