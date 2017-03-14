@@ -131,8 +131,12 @@ public final class PushClientService extends Service implements PushSocket.PushS
         this.isRun = isRunning;
         logger.info("socketChangedRunStatus=>" + isRunning);
         if(!isRunning && isStart){
-            logger.info("start reconnect socket...");
-            socket.startReconnect();
+            try {
+                logger.info("start reconnect socket...");
+                socket.startReconnect();
+            }catch (Exception e){
+                logger.error("reconnect socket exception:" + e.getMessage(), e);
+            }
         }
     }
 

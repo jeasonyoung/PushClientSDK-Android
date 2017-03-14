@@ -20,7 +20,11 @@ public enum AckResult {
     /**
      * 参数错误。
      */
-    ParamError(-3);
+    ParamError(-3),
+    /**
+     * 运行错误。
+     */
+    Runntime(-4);
 
     private int val;
     /**
