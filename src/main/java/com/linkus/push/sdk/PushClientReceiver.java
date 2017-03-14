@@ -21,14 +21,14 @@ public abstract class PushClientReceiver extends BroadcastReceiver {
         final String action = intent.getAction();
         if(action == null || action.length() == 0)return;
         final String account = intent.getStringExtra(PUSH_BROADCAST_PARAMS_ACCOUNT);
-        if(account == null || account.length() == 0) return;
-        if(!account.equalsIgnoreCase(getAccount())){
-            return;
-        }
         logger.info("onReceive["+ account +"]=>" + action);
         switch (action.toLowerCase()){
             case PUSH_BROADCAST_PUBLISH:{//推送消息
                 try {
+                    if(account == null || account.length() == 0) return;
+                    if(!account.equalsIgnoreCase(getAccount())){
+                        return;
+                    }
                     receiverPublishHandler(intent);
                 }catch (Exception e){
                     logger.error("onReceive-["+ PUSH_BROADCAST_PUBLISH +"]-exception:" + e.getMessage(), e);
@@ -37,9 +37,22 @@ public abstract class PushClientReceiver extends BroadcastReceiver {
             }
             case PUSH_BROADCAST_ERROR:{//错误消息处理
                 try {
+                    if(account == null || account.length() == 0) return;
+                    if(!account.equalsIgnoreCase(getAccount())){
+                        return;
+                    }
                     receiverErrorHandler(intent);
                 }catch (Exception e){
                     logger.error("onReceive-["+ PUSH_BROADCAST_ERROR +"]-exception:" + e.getMessage(), e);
+                }
+                break;
+            }
+            default:{//触发激活推送服务
+                try {
+                    logger.info("激活推送服务广播-接收:action=" + action);
+                    context.startService(new Intent(context, PushClientService.class));
+                }catch (Exception e){
+                    logger.error("onReceive-["+ action +"]-exception:" + e.getMessage(), e);
                 }
                 break;
             }
