@@ -15,9 +15,19 @@ import static com.linkus.push.sdk.PushClientService.*;
  */
 public abstract class PushClientReceiver extends BroadcastReceiver {
     private final static LogWrapper logger = LogWrapper.getLog(PushClientReceiver.class);
+    private Context context;
+
+    /**
+     * 获取上下文。
+     * @return 上下文。
+     */
+    protected Context getContext() {
+        return context;
+    }
 
     @Override
     public final void onReceive(Context context, Intent intent) {
+        this.context = context;
         final String action = intent.getAction();
         if(action == null || action.length() == 0)return;
         final String account = intent.getStringExtra(PUSH_BROADCAST_PARAMS_ACCOUNT);
