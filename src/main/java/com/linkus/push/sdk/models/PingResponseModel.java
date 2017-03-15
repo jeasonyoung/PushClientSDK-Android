@@ -4,15 +4,15 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.linkus.push.sdk.utils.DigestUtils;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 心跳反馈数据。
  * Created by jeasonyoung on 2017/3/7.
  */
 public class PingResponseModel {
-    private static final Map<String, PingResponseModel> cache = new ConcurrentHashMap<>();
+    private static final Map<String, PingResponseModel> cache = new HashMap<>();
     private static final Object lock = new Object();
 
     private static final String PARAMS_HEART_RATE = "heartRate";
@@ -64,7 +64,7 @@ public class PingResponseModel {
             throw new IllegalArgumentException("json");
         }
         final String key = DigestUtils.md5Hex(json);
-        PingResponseModel model = cache.getOrDefault(key, null);
+        PingResponseModel model = cache.get(key);
         if(model == null){
             synchronized (lock){
                 model = new PingResponseModel(JSON.parseObject(json));

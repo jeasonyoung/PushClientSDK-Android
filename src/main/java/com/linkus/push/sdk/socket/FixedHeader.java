@@ -19,7 +19,7 @@ class FixedHeader {
      * @param remainingLength
      * 消息体长度。
      */
-    public FixedHeader(final MessageType type, final Boolean ack, final Integer remainingLength){
+    FixedHeader(final MessageType type, final Boolean ack, final Integer remainingLength){
         this.type = type;
         this.qos = (ack ? Qos.Ack : Qos.None);
         this.isRetain = false;

@@ -2,16 +2,16 @@ package com.linkus.push.sdk.utils;
 
 import android.util.Log;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 日志包装器。
  * Created by jeasonyoung on 2017/3/7.
  */
 public final class LogWrapper {
-    private static final ConcurrentMap<Class<?>, LogWrapper> cache = new ConcurrentHashMap<>();
-
+    private static final Object lock = new Object();
+    private static final Map<Class<?>, LogWrapper> cache = new HashMap<>();
     private final String tag;
 
     /**
@@ -62,7 +62,7 @@ public final class LogWrapper {
      * @return 日志包装器。
      */
     public static synchronized LogWrapper getLog(final Class<?> clazz){
-        LogWrapper wrapper = cache.getOrDefault(clazz, null);
+        LogWrapper wrapper = cache.get(clazz);
         if(wrapper == null){
             return putIfAbsent(clazz, new LogWrapper(clazz));
         }
@@ -70,10 +70,12 @@ public final class LogWrapper {
     }
 
     private static LogWrapper putIfAbsent(final Class<?> clazz, final LogWrapper wrapper){
-        LogWrapper log = cache.putIfAbsent(clazz, wrapper);
-        if(log == null){
-            return wrapper;
+        synchronized (lock) {
+            LogWrapper log = cache.put(clazz, wrapper);
+            if (log == null) {
+                return wrapper;
+            }
+            return log;
         }
-        return log;
     }
 }

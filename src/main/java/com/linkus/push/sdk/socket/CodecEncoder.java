@@ -8,7 +8,7 @@ import com.linkus.push.sdk.utils.LogWrapper;
  * 消息编码器。
  * Created by jeasonyoung on 2017/3/5.
  */
-public final class CodecEncoder extends Codec {
+final class CodecEncoder extends Codec {
     private static final LogWrapper logger = LogWrapper.getLog(CodecEncoder.class);
 
     /**
