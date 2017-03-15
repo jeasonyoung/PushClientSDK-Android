@@ -53,7 +53,7 @@ public abstract class BaseModel {
      * 获取接入密钥。
      * @return 接入密钥。
      */
-    public String getToken() {
+    private String getToken() {
         return token;
     }
 

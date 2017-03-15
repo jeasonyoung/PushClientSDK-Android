@@ -1,8 +1,16 @@
 package com.linkus.push.sdk.utils;
 
+import android.os.AsyncTask;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.linkus.push.sdk.data.SocketConfig;
+import com.linkus.push.sdk.models.AckResult;
 import com.linkus.push.sdk.socket.Codec;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -16,7 +24,54 @@ public final class HttpUtils {
     private static final int    POST_TIMEOUT = 5000;
     private static final String APPLICATION_JSON = "application/json";
 
-    public static String postJson(final String url, final String json) throws Exception{
+    private static final String PARAMS_RESULT    = "result";
+    private static final String PARAMS_MESSAGE   = "message";
+    private static final String PARAMS_SETTING   = "setting";
+
+    /**
+     * 异步提交请求。
+     * @param url
+     * URL
+     * @param paramJson
+     * JSON请求参数。
+     * @param listener
+     * 回调处理
+     */
+    public static void asyncPostJson(final String url, final String paramJson, final HttpUtilSyncListener listener){
+        new AsyncTask<Void,Void,String>(){
+            @Override
+            protected String doInBackground(Void... voids) {
+                try {
+                    return postJson(url, paramJson);
+                }catch (Exception ex){
+                    logger.error("postJson-exception:" + ex.getMessage(), ex);
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(String result) {
+                try {
+                    logger.debug("postJson-result=>" + result);
+                    final JSONObject obj = JSON.parseObject(result);
+                    if(obj == null || obj.size() == 0) throw new RuntimeException("数据为空!");
+                    final AckResult ack = AckResult.parse(obj.getIntValue(PARAMS_RESULT));
+                    if(ack == null) throw new RuntimeException("状态未知!=>" + obj.getIntValue(PARAMS_RESULT));
+                    if(ack != AckResult.Success){
+                        listener.onResponse(ack, obj.getString(PARAMS_MESSAGE), null);
+                        return;
+                    }
+                    listener.onResponse(ack, null, new SocketConfig(obj.getJSONObject(PARAMS_SETTING)));
+
+                }catch (Exception e){
+                    logger.error("解析数据异常:" + e.getMessage(), e);
+                    listener.onResponse(AckResult.Runntime, e.getMessage(), null);
+                }
+            }
+        }.execute((Void)null);
+    }
+
+    private static String postJson(final String url, final String json) throws Exception{
         if(url == null || url.length() == 0){
             throw new IllegalArgumentException("url");
         }
@@ -87,5 +142,13 @@ public final class HttpUtils {
         }catch (Exception e){
             logger.warn("closeQuietly-异常:" + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 异步消息处理监听器。
+     */
+    public interface HttpUtilSyncListener{
+
+        void onResponse(final AckResult result, final String error, final SocketConfig config);
     }
 }

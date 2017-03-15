@@ -13,6 +13,8 @@ import com.linkus.push.sdk.models.PublishModel;
 import com.linkus.push.sdk.socket.PushSocket;
 import com.linkus.push.sdk.utils.LogWrapper;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * 推送客户端Android服务。
  * Created by jeasonyoung on 2017/3/4.
@@ -40,6 +42,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
     private final int GRAY_SERVICE_ID;
 
     private boolean isStart = false, isRun = false;
+    private AtomicReference<AccessData> refAccess = new AtomicReference<>();
 
     private PushSocket socket;
 
@@ -82,9 +85,13 @@ public final class PushClientService extends Service implements PushSocket.PushS
         }
         logger.info("onStartCommand(start:"+ isStart +",run:"+ isRun +")...");
         if(!isRun && isStart) {
-            //启动socket
-            logger.info("onStartCommand-准备启动socket...");
-            socket.startHttp();
+            try {
+                //启动socket
+                logger.info("onStartCommand-准备启动socket...");
+                socket.startHttp();
+            }catch (Exception e){
+                logger.error("onStartCommand-start http exception:" + e.getMessage(), e);
+            }
         }
         //返回
         return Service.START_STICKY;
@@ -130,7 +137,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
     public void socketChangedRunStatus(boolean isRunning) {
         this.isRun = isRunning;
         logger.info("socketChangedRunStatus=>" + isRunning);
-        if(!isRunning && isStart){
+        if(!isRunning && isStart && loadAccessConfig() != null){
             try {
                 logger.info("start reconnect socket...");
                 socket.startReconnect();
@@ -143,19 +150,23 @@ public final class PushClientService extends Service implements PushSocket.PushS
     @Override
     public AccessData loadAccessConfig() {
         logger.info("loadAccessConfig...");
-        return PushClientSDK.access;
+        return refAccess.get();
     }
 
     @Override
     public void socketErrorMessage(AckResult status, String msg) {
         logger.error("socketErrorMessage["+ status +"]=>" + msg);
         if(status == AckResult.Success) return;
+        //加载配置数据
+        final AccessData access = loadAccessConfig();
+        if(access == null){
+            logger.error("socketErrorMessage-加载配置文件失败!");
+            return;
+        }
         //创建广播意图
         final Intent intent = new Intent();
         //错误广播
         intent.setAction(PUSH_BROADCAST_ERROR);
-        //加载配置数据
-        final AccessData access = loadAccessConfig();
         //接入帐号
         intent.putExtra(PUSH_BROADCAST_PARAMS_ACCOUNT, access.getAccount());
         //错误类型
@@ -170,11 +181,15 @@ public final class PushClientService extends Service implements PushSocket.PushS
     public void socketPublish(PublishModel model) {
         logger.info("socketPublish=>" + model);
         if(model == null) return;
+        //加载配置数据
+        final AccessData access = loadAccessConfig();
+        if(access == null){
+            logger.error("socketPublish-加载配置文件失败!");
+            return;
+        }
         final Intent intent = new Intent();
         //推送消息广播
         intent.setAction(PUSH_BROADCAST_PUBLISH);
-        //加载配置数据
-        final AccessData access = loadAccessConfig();
         //接入帐号
         intent.putExtra(PUSH_BROADCAST_PARAMS_ACCOUNT, access.getAccount());
         //广播消息内容
@@ -192,6 +207,13 @@ public final class PushClientService extends Service implements PushSocket.PushS
                 logger.warn("IncomingHandler-消息类型未知=>" + msg.what);
                 return;
             }
+            //装载配置文件
+            final AccessData accessData = AccessData.parseBundle(msg.getData());
+            logger.debug("handleMessage-access:" + accessData);
+            if(accessData != null){
+                refAccess.set(accessData);
+            }
+            //动作处理
             switch (action){
                 case Start:{//启动HTTP
                     try {

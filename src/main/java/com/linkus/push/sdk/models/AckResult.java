@@ -10,21 +10,25 @@ public enum AckResult {
      */
     Success(0),
     /**
-     * 接入帐号不存在。
+     * 运行错误。
      */
-    AccountError(-1),
-    /**
-     * 校验码错误。
-     */
-    SignError(-2),
+    Runntime(-1),
     /**
      * 参数错误。
      */
-    ParamError(-3),
+    ParamError(-100),
     /**
-     * 运行错误。
+     * 接入帐号不存在。
      */
-    Runntime(-4);
+    AccountError(-200),
+    /**
+     * 校验码错误。
+     */
+    SignError(-300),
+    /**
+     * 推送设备错误。
+     */
+    DeviceError(-400);
 
     private int val;
     /**

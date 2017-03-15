@@ -22,7 +22,7 @@ public final class PushClientSDK implements Closeable {
     private static final String SRV_URL_PREFIX = "http";
     private static final String SRV_URL_SUFFIX = "/push-http-connect/v1/callback/connect.do";
 
-    static final AccessData access = new AccessData();
+    private final AccessData access = new AccessData();
 
     private final Context context;
     private Messenger mService = null;
@@ -67,12 +67,15 @@ public final class PushClientSDK implements Closeable {
         if(host == null || host.length() == 0){
             throw new IllegalArgumentException("host");
         }
+        //接入帐号
         if(account == null || account.trim().length() == 0){
             throw new IllegalArgumentException("account");
         }
+        //接入密钥
         if(password == null || password.trim().length() == 0){
             throw new IllegalArgumentException("password");
         }
+        //设备ID
         if(deviceToken == null || deviceToken.trim().length() == 0){
             throw new IllegalArgumentException("deviceToken");
         }
@@ -82,6 +85,8 @@ public final class PushClientSDK implements Closeable {
         if(!host.startsWith(SRV_URL_PREFIX)){
             urlBuilder.append(SRV_URL_PREFIX).append("://");
         }
+        //添加host
+        urlBuilder.append(host);
         //检查尾部
         if(host.endsWith(SRV_URL_SUFFIX)){
             throw new IllegalArgumentException("host不要包含子路径=>" + SRV_URL_SUFFIX);
@@ -93,10 +98,7 @@ public final class PushClientSDK implements Closeable {
         }
         //设置访问设置数据
         access.setAccessData(urlBuilder.toString(), account.trim(), password.trim(), deviceToken.trim());
-        logger.debug("url:" + urlBuilder.toString());
-        logger.debug("account:" + account);
-        logger.debug("password:" + password);
-        logger.debug("deviceToken:" + deviceToken);
+        logger.debug("access=>" + account);
         //启动HTTP请求数据
         actionService(PushClientService.SDKAction.Start);
     }
@@ -140,7 +142,9 @@ public final class PushClientSDK implements Closeable {
             return;
         }
         try{
-            mService.send(Message.obtain(null, action.getVal()));
+            final Message data = Message.obtain(null, action.getVal());
+            data.setData(access.buildBundle());
+            mService.send(data);
         }catch (Exception e){
             logger.error("actionService["+ action +"]-异常:" + e.getMessage(), e);
         }

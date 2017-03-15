@@ -1,6 +1,5 @@
 package com.linkus.push.sdk.data;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
 /**
@@ -9,7 +8,7 @@ import com.alibaba.fastjson.JSONObject;
  */
 public class SocketConfig {
     private String server;
-    private Integer port, rate, times, reconnect;
+    private int port, rate, times, reconnect;
 
     private static final String PARAMS_SERVER    = "serverIP";
     private static final String PARAMS_PORT      = "port";
@@ -19,42 +18,33 @@ public class SocketConfig {
 
     /**
      * 构造函数。
-     * @param map
+     * @param setting
      * map对象数据集合。
      */
-    private SocketConfig(final JSONObject map){
-        if(map == null || map.size() == 0){
-            throw new IllegalArgumentException("map为空!");
+    public SocketConfig(final JSONObject setting) {
+        if (setting == null || setting.size() == 0) {
+            throw new IllegalArgumentException("setting is null!");
         }
         //1.socket服务器地址
-        if(map.containsKey(PARAMS_SERVER)){
-            this.server = map.getString(PARAMS_SERVER);
+        if (setting.containsKey(PARAMS_SERVER)) {
+            this.server = setting.getString(PARAMS_SERVER);
         }
         //2.socket服务器端口
-        if(map.containsKey(PARAMS_PORT)){
-            this.port = map.getInteger(PARAMS_PORT);
+        if (setting.containsKey(PARAMS_PORT)) {
+            this.port = setting.getIntValue(PARAMS_PORT);
         }
         //3.socket心跳间隔(秒)
-        if(map.containsKey(PARAMS_RATE)){
-            this.rate = map.getInteger(PARAMS_RATE);
+        if (setting.containsKey(PARAMS_RATE)) {
+            this.rate = setting.getIntValue(PARAMS_RATE);
         }
         //4.socket丢失心跳间隔次数
-        if(map.containsKey(PARAMS_TIMES)){
-            this.times = map.getInteger(PARAMS_TIMES);
+        if (setting.containsKey(PARAMS_TIMES)) {
+            this.times = setting.getIntValue(PARAMS_TIMES);
         }
         //5.socket重连间隔(秒)
-        if(map.containsKey(PARAMS_RECONNECT)){
-            this.reconnect = map.getInteger(PARAMS_RECONNECT);
+        if (setting.containsKey(PARAMS_RECONNECT)) {
+            this.reconnect = setting.getIntValue(PARAMS_RECONNECT);
         }
-    }
-
-    /**
-     * 构造函数。
-     * @param json
-     * json字符串。
-     */
-    public SocketConfig(final String json){
-        this(JSON.parseObject(json));
     }
 
     /**
@@ -69,7 +59,7 @@ public class SocketConfig {
      * 获取socket服务器端口。
      * @return socket服务器端口。
      */
-    public Integer getPort() {
+    public int getPort() {
         return port;
     }
 
@@ -77,7 +67,7 @@ public class SocketConfig {
      * 获取socket心跳间隔。
      * @return socket心跳间隔(秒)。
      */
-    public Integer getRate() {
+    public int getRate() {
         return rate;
     }
 
@@ -86,11 +76,9 @@ public class SocketConfig {
      * @param rate
      * socket心跳间隔(秒)。
      */
-    public void setRate(Integer rate) {
-        if(rate != null && rate > 0 && !this.rate.equals(rate)) {
-            synchronized (this) {
-                this.rate = rate;
-            }
+    public void setRate(int rate) {
+        if(rate > 0 && this.rate != rate) {
+            this.rate = rate;
         }
     }
 
@@ -98,7 +86,7 @@ public class SocketConfig {
      * 获取socket心跳丢失次数。
      * @return socket心跳丢失次数。
      */
-    public Integer getTimes() {
+    public int getTimes() {
         return times;
     }
 
@@ -106,7 +94,7 @@ public class SocketConfig {
      * 获取socket重连时间间隔。
      * @return socket重连时间间隔(秒)。
      */
-    public Integer getReconnect() {
+    public int getReconnect() {
         return reconnect;
     }
 
@@ -115,11 +103,14 @@ public class SocketConfig {
      * @param reconnect
      * socket重连时间间隔(秒)。
      */
-    public void setReconnect(Integer reconnect) {
-        if(reconnect != null && reconnect > 0 && !this.reconnect.equals(reconnect)) {
-            synchronized (this) {
-                this.reconnect = reconnect;
-            }
+    public void setReconnect(int reconnect) {
+        if(reconnect > 0 && this.reconnect != reconnect) {
+            this.reconnect = reconnect;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "{server="+ getServer() +",port="+ getPort() +",rate="+ getRate() +",times="+ getTimes() +",reconnect="+ getReconnect() +"}";
     }
 }
