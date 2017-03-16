@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
@@ -11,6 +12,7 @@ import com.linkus.push.sdk.data.AccessData;
 import com.linkus.push.sdk.utils.LogWrapper;
 
 import java.io.Closeable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 推送客户端SDK。
@@ -26,7 +28,7 @@ public final class PushClientSDK implements Closeable {
 
     private final Context context;
     private Messenger mService = null;
-    private boolean mBound = false;
+    private AtomicBoolean mBound = new AtomicBoolean(false);
 
     /**
      * 构造函数。
@@ -136,18 +138,36 @@ public final class PushClientSDK implements Closeable {
     }
 
     //通知服务器执行方法
-    private void actionService(PushClientService.SDKAction action){
-        if(!mBound){
-            logger.warn("未关联到推送服务，请稍后再试!");
-            return;
-        }
-        try{
-            final Message data = Message.obtain(null, action.getVal());
-            data.setData(access.buildBundle());
-            mService.send(data);
-        }catch (Exception e){
-            logger.error("actionService["+ action +"]-异常:" + e.getMessage(), e);
-        }
+    private void actionService(final PushClientService.SDKAction action){
+        final int interval = 500;
+        new AsyncTask<Void,Void,Boolean>(){
+            @Override
+            protected Boolean doInBackground(Void... voids) {
+                while (!mBound.get()){
+                    try {
+                        Thread.sleep(interval);
+                    }catch (Exception e){
+                        logger.warn("wait service bind thread exception:" + e.getMessage());
+                    }
+                }
+                return mBound.get();
+            }
+
+            @Override
+            protected void onPostExecute(Boolean result) {
+                if(!result){
+                    logger.warn("未关联到推送服务，请稍后再试!");
+                    return;
+                }
+                try{
+                    final Message data = Message.obtain(null, action.getVal());
+                    data.setData(access.buildBundle());
+                    mService.send(data);
+                }catch (Exception e){
+                    logger.error("actionService["+ action +"]-异常:" + e.getMessage(), e);
+                }
+            }
+        }.execute((Void)null);
     }
 
     /**
@@ -156,9 +176,9 @@ public final class PushClientSDK implements Closeable {
     @Override
     public void close() {
         logger.info("解除与推送服务的关联!");
-        if(mBound){
+        if(mBound.get()){
             context.unbindService(mConnection);
-            mBound = false;
+            mBound.set(false);
             logger.info("已解除与推送服务的关联!");
         }
     }
@@ -168,13 +188,13 @@ public final class PushClientSDK implements Closeable {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             mService = new Messenger(service);
-            mBound = true;
+            mBound.set(true);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName className) {
             mService = null;
-            mBound = false;
+            mBound.set(false);
         }
     };
 }
