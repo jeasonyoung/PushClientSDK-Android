@@ -25,25 +25,24 @@ public class PublishModel {
      * 消息数据模型。
      */
     private PublishModel(final JSONObject model){
-        if(model == null || model.size() == 0){
-            throw new IllegalArgumentException("model");
-        }
-        if(model.containsKey(PUBLISH_PUSH_ID)){//1
-            this.pushId = model.getString(PUBLISH_PUSH_ID);
-        }
-        if(model.containsKey(PUBLISH_CONTENT_ID)){//2
-            this.contentId = model.getString(PUBLISH_CONTENT_ID);
-        }
-        if(model.containsKey(PUBLISH_CONTENT)){//3
-            final Object obj = model.get(PUBLISH_CONTENT);
-            if(obj instanceof String){
-                this.content = obj.toString();
-            }else if(obj instanceof JSONObject){
-                this.content = JSON.toJSONString(obj);
+        if(model.size() > 0) {
+            if (model.containsKey(PUBLISH_PUSH_ID)) {//1
+                this.pushId = model.getString(PUBLISH_PUSH_ID);
             }
-        }
-        if(model.containsKey(PUBLISH_APS)){//4
-            this.aps = new ApsModel(model.getJSONObject(PUBLISH_APS));
+            if (model.containsKey(PUBLISH_CONTENT_ID)) {//2
+                this.contentId = model.getString(PUBLISH_CONTENT_ID);
+            }
+            if (model.containsKey(PUBLISH_CONTENT)) {//3
+                final Object obj = model.get(PUBLISH_CONTENT);
+                if (obj instanceof String) {
+                    this.content = obj.toString();
+                } else if (obj instanceof JSONObject) {
+                    this.content = JSON.toJSONString(obj);
+                }
+            }
+            if (model.containsKey(PUBLISH_APS)) {//4
+                this.aps = new ApsModel(model.getJSONObject(PUBLISH_APS));
+            }
         }
     }
 
