@@ -121,25 +121,24 @@ public class PublishModel {
          * aps格式数据模型。
          */
         ApsModel(final JSONObject model){
-            if(model == null || model.size() == 0){
-                throw new IllegalArgumentException("model");
-            }
-            if(model.containsKey(APS_BADGE)){//1
-                this.badge = model.getInteger(APS_BADGE);
-            }
-            if(model.containsKey(APS_SOUND)){//2
-                this.sound = model.getString(APS_SOUND);
-            }
-            if(model.containsKey(APS_CONTENT_AVAILABLE)){//3
-                this.contentAvailable = model.getInteger(APS_CONTENT_AVAILABLE);
-            }
-            if(model.containsKey(APS_ALERT)){
-               final Object obj = model.get(APS_ALERT);
-               if(obj instanceof JSONObject){
-                   this.alert = new ApsAlertModel((JSONObject) obj);
-               }else if(obj instanceof String){
-                   this.alert = obj.toString();
-               }
+            if(model.size() > 0) {
+                if (model.containsKey(APS_BADGE)) {//1
+                    this.badge = model.getInteger(APS_BADGE);
+                }
+                if (model.containsKey(APS_SOUND)) {//2
+                    this.sound = model.getString(APS_SOUND);
+                }
+                if (model.containsKey(APS_CONTENT_AVAILABLE)) {//3
+                    this.contentAvailable = model.getInteger(APS_CONTENT_AVAILABLE);
+                }
+                if (model.containsKey(APS_ALERT)) {
+                    final Object obj = model.get(APS_ALERT);
+                    if (obj instanceof JSONObject) {
+                        this.alert = new ApsAlertModel((JSONObject) obj);
+                    } else if (obj instanceof String) {
+                        this.alert = obj.toString();
+                    }
+                }
             }
         }
 
