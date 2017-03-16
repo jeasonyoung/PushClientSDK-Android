@@ -77,12 +77,12 @@ public abstract class PushClientReceiver extends BroadcastReceiver {
         if(content == null || content.length() == 0) return;
         //消息解码
         final PublishModel data = new PublishModel(content);
-        String title =  null;
+        String title = null;
         if(data.getAps() != null){//获取消息标题
            final Object alert = data.getAps().getAlert();
            if(alert instanceof PublishModel.ApsAlertModel){
                title = ((PublishModel.ApsAlertModel)alert).getBody();
-           }else{
+           }else if(alert instanceof String){
                title = alert.toString();
            }
         }
