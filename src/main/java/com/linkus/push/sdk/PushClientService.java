@@ -174,7 +174,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
         //错误消息内容
         intent.putExtra(PUSH_BROADCAST_ERROR_CONTENT, msg);
         //发送错误消息广播
-        sendBroadcast(intent);
+        sendBroadcast(intent, PushClientSDK.PUSH_PERMISSION_BROADCAST);
     }
 
     @Override
@@ -195,7 +195,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
         //广播消息内容
         intent.putExtra(PUSH_BROADCAST_PUBLISH_CONTENT, model.toJson());
         //发送推送消息广播
-        sendBroadcast(intent);
+        sendBroadcast(intent, PushClientSDK.PUSH_PERMISSION_BROADCAST);
     }
 
     //handler of incoming messages from clients
