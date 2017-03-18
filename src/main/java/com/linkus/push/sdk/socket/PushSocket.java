@@ -16,10 +16,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -44,12 +43,10 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
     private final AtomicInteger reconnectTotal = new AtomicInteger(0);
     private final AtomicReference<SocketConfig> refSocketConfig = new AtomicReference<>();
     private final AtomicReference<Socket> refSocket = new AtomicReference<>();
+    private final CopyOnWriteArrayList<String> receiverPushIdsCache = new CopyOnWriteArrayList<>();
 
     private CodecDecoder decoder;
     private CodecEncoder encoder;
-
-    private final Object lock = new Object();
-    private final List<String> receiverPushIdCache = new ArrayList<>();
 
     /**
      * 构造函数函数。
@@ -182,10 +179,6 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             if(!status && isPing.get()){
                 //停止心跳
                 isPing.set(false);
-                synchronized (lock) {//清空推送消息ID缓存
-                    if(receiverPushIdCache.size() > 0)
-                        receiverPushIdCache.clear();
-                }
             }
             if(listener != null){
                 listener.socketChangedRunStatus(status);
@@ -394,19 +387,18 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                 break;
             }
             case Publish: {//推送消息下行
-                PublishModel data = (PublishModel)model;
+                final PublishModel data = (PublishModel)model;
                 if(data != null){
+                    logger.debug("decode-publish=>" + data);
                     //应答消息反馈
                     encoder.encodePublishAckRequest(listener.loadAccessConfig(), data.getPushId(), this);
                     //判断是否重复
-                    synchronized (lock){
-                        if(receiverPushIdCache.contains(data.getPushId())){
-                            logger.warn("decode-消息["+ data.getPushId()+"]已接收过,忽略!");
-                            break;
-                        }
-                        //添加缓存
-                        receiverPushIdCache.add(data.getPushId());
+                    if(receiverPushIdsCache.contains(data.getPushId())){
+                        logger.warn("decode-消息["+ data.getPushId()+"]已接收过,忽略!");
+                        return;
                     }
+                    //添加到缓存
+                    receiverPushIdsCache.add(data.getPushId());
                     //回调处理
                     listener.socketPublish(data);
                 }
