@@ -31,11 +31,6 @@ public final class PushClientSDK implements Closeable {
     private AtomicBoolean mBound = new AtomicBoolean(false);
 
     /**
-     * 广播权限。
-     */
-    public static final String PUSH_PERMISSION_BROADCAST = "push.permission.BROADCAST";
-
-    /**
      * 构造函数。
      * @param context
      * android context
