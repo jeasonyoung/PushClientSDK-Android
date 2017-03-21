@@ -23,38 +23,6 @@ public final class LogWrapper {
         this.tag = clazz.getSimpleName();
     }
 
-    public void info(final String msg){
-        Log.i(tag, msg);
-    }
-
-    public void info(final String msg, final Throwable e){
-        Log.i(tag, msg, e);
-    }
-
-    public void debug(final String msg){
-        Log.d(tag, msg);
-    }
-
-    public void debug(final String msg, final Throwable e){
-        Log.d(tag, msg, e);
-    }
-
-    public void warn(final String msg){
-        Log.w(tag, msg);
-    }
-
-    public void warn(final String msg, final Throwable e){
-        Log.w(tag, msg, e);
-    }
-
-    public void error(final String msg){
-        Log.e(tag, msg);
-    }
-
-    public void error(final String msg, final Throwable e){
-        Log.e(tag, msg, e);
-    }
-
     /**
      * 日志包装器。
      * @param clazz
@@ -78,4 +46,58 @@ public final class LogWrapper {
             return log;
         }
     }
+
+    public void info(final String msg){
+        write("info", msg);
+        Log.i(tag, msg);
+    }
+
+//    public void info(final String msg, final Throwable e){
+//        Log.i(tag, msg, e);
+//    }
+
+    public void debug(final String msg){
+        write("debug", msg);
+        Log.d(tag, msg);
+    }
+
+//    public void debug(final String msg, final Throwable e){
+//        Log.d(tag, msg, e);
+//    }
+
+    public void warn(final String msg){
+        write("warn", msg);
+        Log.w(tag, msg);
+    }
+
+    public void warn(final String msg, final Throwable e){
+        write("warn", msg, e);
+        Log.w(tag, msg, e);
+    }
+
+    public void error(final String msg){
+        write("error", msg);
+        Log.e(tag, msg);
+    }
+
+    public void error(final String msg, final Throwable e){
+        write("error", msg, e);
+        Log.e(tag, msg, e);
+    }
+
+    private static void write(final String prefix,final String msg){
+        write(prefix, msg, null);
+    }
+
+    private static void write(final String prefix,final String msg, final Throwable e){
+//        try{
+//            ///TODO:
+//
+//        }catch (Exception ex){
+//            Log.e(LogWrapper.class.getSimpleName(), "日志持久化异常:" + e.getMessage(), ex);
+//        }
+    }
+
+
+
 }

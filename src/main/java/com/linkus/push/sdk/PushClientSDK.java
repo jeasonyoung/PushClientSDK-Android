@@ -49,8 +49,8 @@ public final class PushClientSDK implements Closeable {
         this.context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
         //注册广播
-        logger.info("register push restart broadcast...");
-        PushClientService.addRegisterBroadcastReceiver(context, PushClientService.PUSH_BROADCAST_RESTART);
+        //logger.info("register push restart broadcast...");
+        //PushClientService.addRegisterBroadcastReceiver(context, PushClientService.PUSH_BROADCAST_RESTART);
     }
 
     /**

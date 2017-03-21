@@ -26,7 +26,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
     //接入帐号
     static final String PUSH_BROADCAST_PARAMS_ACCOUNT = "account";
     //重启广播Action
-    static final String PUSH_BROADCAST_RESTART = "push_broadcast_restart";
+    private static final String PUSH_BROADCAST_RESTART = "push_broadcast_restart";
     //错误信息广播Action
     static final String PUSH_BROADCAST_ERROR   = "push_broadcast_error";
     //错误类型
