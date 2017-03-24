@@ -35,27 +35,21 @@ public final class PushClientSDK implements Closeable {
      * @param context
      * android context
      */
-    public PushClientSDK(final Context context){
-        if(context == null) throw new IllegalArgumentException("context");
+    public PushClientSDK(final Context context) {
+        if (context == null) throw new IllegalArgumentException("context");
         this.context = context;
-        new AsyncTask<Void,Void,Void>(){
-            @Override
-            protected Void doInBackground(Void... voids) {
-                //注册日志存储根目录
-                LogWrapper.registerRootDir(context.getCacheDir());
 
-                //启动服务
-                logger.info("start push service...");
-                context.startService(new Intent(context, PushClientService.class));
+        //注册日志存储根目录
+        LogWrapper.registerRootDir(context.getCacheDir());
 
-                //连接服务
-                logger.info("connect push service..");
-                final Intent intent = new Intent(context, PushClientService.class);
-                context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        //启动服务
+        logger.info("start push service...");
+        context.startService(new Intent(context, PushClientService.class));
 
-                return null;
-            }
-        }.execute((Void)null);
+        //连接服务
+        logger.info("connect push service..");
+        final Intent intent = new Intent(context, PushClientService.class);
+        context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
     /**
