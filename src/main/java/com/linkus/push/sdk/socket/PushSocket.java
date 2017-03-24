@@ -312,18 +312,15 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                     }
                     //开始接收数据
                     byte buf[] = new byte[BUF_SIZE];
-                    final ByteArrayOutputStream data = new ByteArrayOutputStream(BUF_SIZE);
                     //从socket获取数据
                     final DataInputStream inputStream = new DataInputStream(socket.getInputStream());
                     logger.debug("socket receive wait data...");
-                    //循环读取数据
-                    int count;
-                    while ((count = inputStream.read(buf, 0, buf.length)) > 0){
-                        data.write(buf, 0, count);
-                    }
-                    //已读取数据
-                    if (data.size() > 0) {
+                    //读取数据
+                    final int count = inputStream.read(buf, 0, buf.length);
+                    if(count > 0) {
                         lastIdleTime.set(System.currentTimeMillis());//更新时间戳
+                        final ByteArrayOutputStream data = new ByteArrayOutputStream(BUF_SIZE);
+                        data.write(buf, 0, count);
                         logger.info("socket receive read data:" + data.size());
                         return data.toByteArray();
                     }
