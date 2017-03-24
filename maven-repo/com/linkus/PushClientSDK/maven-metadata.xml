@@ -3,7 +3,7 @@
   <groupId>com.linkus</groupId>
   <artifactId>PushClientSDK</artifactId>
   <versioning>
-    <release>1.1.5.6</release>
+    <release>1.1.5.7</release>
     <versions>
       <version>1.1</version>
       <version>1.1.1</version>
@@ -17,7 +17,8 @@
       <version>1.1.5.4</version>
       <version>1.1.5.5</version>
       <version>1.1.5.6</version>
+      <version>1.1.5.7</version>
     </versions>
-    <lastUpdated>20170324084638</lastUpdated>
+    <lastUpdated>20170324090902</lastUpdated>
   </versioning>
 </metadata>
