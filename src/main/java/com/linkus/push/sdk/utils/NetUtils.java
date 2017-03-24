@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public final class NetUtils {
     private static final LogWrapper logger = LogWrapper.getLog(NetUtils.class);
 
-    private static final String regex_ip = "(\\d{1,3}\\.){3}\\d{1,3}";
+    private static final String regex_ip = "^(\\d{1,3}\\.){3}\\d{1,3}$";
     private static final Map<String,String> ip_cache = new HashMap<>();
     private static final Object lock = new Object();
 
