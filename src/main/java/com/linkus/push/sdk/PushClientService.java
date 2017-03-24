@@ -35,33 +35,29 @@ public final class PushClientService extends Service implements PushSocket.PushS
     //消息内容
     static final String PUSH_BROADCAST_PARAMS_CONTENT = "content";
 
-    private Messenger mMessenger;
     private final int GRAY_SERVICE_ID;
 
     private boolean isStart = false, isRun = false;
     private AtomicReference<AccessData> refAccess = new AtomicReference<>();
 
-    private PushSocket socket;
+    private final PushSocket socket;
+    private final Messenger mMessenger;
 
     /**
      * 构造函数。
      */
     public PushClientService(){
         GRAY_SERVICE_ID = (int) (System.currentTimeMillis() / 1000);
+        //初始化Messager
+        mMessenger = new Messenger(new IncomingHandler());
+        //初始化socket对象
+        socket = new PushSocket(this, this);
     }
 
     @Override
     public void onCreate() {
         logger.info("onCreate...");
         super.onCreate();
-        //初始化socket对象
-        if(socket == null) {
-            socket = new PushSocket(this, this);
-        }
-        //初始化Messager
-        if(mMessenger == null){
-            mMessenger = new Messenger(new IncomingHandler());
-        }
     }
 
     @Override
