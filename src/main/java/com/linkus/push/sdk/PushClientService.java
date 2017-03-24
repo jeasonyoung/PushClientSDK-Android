@@ -86,20 +86,29 @@ public final class PushClientService extends Service implements PushSocket.PushS
         }
         //检查定时器
         if(intent != null && socket != null){
-            switch (intent.getAction()){
-                case PushSocket.ACTION_RECEIVE:{//接收数据定时器
-                    socket.startReceive();
-                    break;
+            final String action = intent.getAction();
+            if(action != null && action.length() > 0) {
+                logger.info("onStartCommand-intent-action:" + action);
+                try {
+                    switch (action) {
+                        case PushSocket.ACTION_RECEIVE: {//接收数据定时器
+                            socket.startReceive();
+                            break;
+                        }
+                        case PushSocket.ACTION_PING: {//接收心跳
+                            socket.startPing();
+                            break;
+                        }
+                        case PushSocket.ACTION_RECONNECT: {//接收重启
+                            socket.startReconnect();
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                }catch (Exception e){
+                    logger.error("onStartCommand-intent(action:"+ action +")-异常:" + e.getMessage(), e);
                 }
-                case PushSocket.ACTION_PING:{//接收心跳
-                    socket.startPing();
-                    break;
-                }
-                case PushSocket.ACTION_RECONNECT:{//接收重启
-                    socket.startReconnect();
-                    break;
-                }
-                default:break;
             }
         }
         //返回
