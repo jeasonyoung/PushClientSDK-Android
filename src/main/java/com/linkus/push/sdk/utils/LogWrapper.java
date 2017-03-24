@@ -1,9 +1,10 @@
 package com.linkus.push.sdk.utils;
 
-import android.os.AsyncTask;
 import android.util.Log;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -106,6 +107,7 @@ public final class LogWrapper {
     }
 
     private static void write(final String prefix,final String msg, final Throwable e){
+        /*
         new AsyncTask<Void,Void,Void>(){
             @Override
             protected Void doInBackground(Void... voids) {
@@ -133,6 +135,7 @@ public final class LogWrapper {
                 return null;
             }
         }.execute((Void)null);
+        */
     }
 
     //日志文件名前缀
@@ -158,6 +161,7 @@ public final class LogWrapper {
 
     //创建日志记录文件
     private static File createLogFile(final String prefix) {
+        if(root == null) return null;
         synchronized (lock) {
             final File path = new File(root, LogFileNamePrefix(prefix));
             if (path.exists()) return path;
