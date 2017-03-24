@@ -1,10 +1,9 @@
 package com.linkus.push.sdk.utils;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -73,33 +72,33 @@ public final class LogWrapper {
     }
 
     public void info(final String msg){
-        write("info", msg);
         Log.i(tag, msg);
+        write("info", msg);
     }
 
     public void debug(final String msg){
-        write("debug", msg);
         Log.d(tag, msg);
+        write("debug", msg);
     }
 
     public void warn(final String msg){
-        write("warn", msg);
         Log.w(tag, msg);
+        write("warn", msg);
     }
 
     public void warn(final String msg, final Throwable e){
-        write("warn", msg, e);
         Log.w(tag, msg, e);
+        write("warn", msg, e);
     }
 
     public void error(final String msg){
-        write("error", msg);
         Log.e(tag, msg);
+        write("error", msg);
     }
 
     public void error(final String msg, final Throwable e){
-        write("error", msg, e);
         Log.e(tag, msg, e);
+        write("error", msg, e);
     }
 
     private static void write(final String prefix,final String msg){
@@ -107,7 +106,6 @@ public final class LogWrapper {
     }
 
     private static void write(final String prefix,final String msg, final Throwable e){
-        /*
         new AsyncTask<Void,Void,Void>(){
             @Override
             protected Void doInBackground(Void... voids) {
@@ -135,7 +133,6 @@ public final class LogWrapper {
                 return null;
             }
         }.execute((Void)null);
-        */
     }
 
     //日志文件名前缀
