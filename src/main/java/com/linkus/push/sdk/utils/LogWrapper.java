@@ -23,7 +23,7 @@ public final class LogWrapper {
     private static final String def_prefix = "pushclient";
     private static final File root = new File(def_prefix);
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-ddTHH:mm:ss");
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 构造函数。
