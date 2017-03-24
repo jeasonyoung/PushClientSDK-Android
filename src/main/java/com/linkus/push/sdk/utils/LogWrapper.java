@@ -1,7 +1,6 @@
 package com.linkus.push.sdk.utils;
 
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.util.Log;
 
 import java.io.*;
@@ -22,9 +21,10 @@ public final class LogWrapper {
     private final String tag;
 
     private static final String def_prefix = "pushclient";
-    private static final File root = new File(Environment.getDataDirectory(), def_prefix);
 
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    private static File root = null;
 
     /**
      * 构造函数。
@@ -48,6 +48,20 @@ public final class LogWrapper {
         }
         return wrapper;
     }
+
+    /**
+     * 注册日志文件根目录。
+     * @param dir
+     * 日志文件根目录。
+     */
+    public static void registerRootDir(final File dir){
+        if(dir == null) return;
+        synchronized (lock) {
+            root = new File(dir, def_prefix);
+        }
+    }
+
+
 
     private static LogWrapper putIfAbsent(final Class<?> clazz, final LogWrapper wrapper){
         synchronized (lock) {
@@ -133,6 +147,7 @@ public final class LogWrapper {
 
     //检查日志保存目录
     private static boolean checkLogDirs(){
+        if(root == null) return false;
         if(!root.exists()){
             synchronized (lock) {
                 final boolean result = root.mkdirs();
