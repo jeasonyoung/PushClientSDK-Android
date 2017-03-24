@@ -2,10 +2,7 @@ package com.linkus.push.sdk;
 
 import android.app.Notification;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.*;
 import com.linkus.push.sdk.data.AccessData;
 import com.linkus.push.sdk.models.AckResult;
@@ -21,24 +18,24 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class PushClientService extends Service implements PushSocket.PushSocketListener {
     private static final LogWrapper logger = LogWrapper.getLog(PushClientService.class);
-    private static final PushClientRestartServiceReceiver restartServiceReceiver = new PushClientRestartServiceReceiver();
 
-    //接入帐号
-    static final String PUSH_BROADCAST_PARAMS_ACCOUNT = "account";
     //重启广播Action
     private static final String PUSH_BROADCAST_RESTART = "push_broadcast_restart";
     //错误信息广播Action
     static final String PUSH_BROADCAST_ERROR   = "push_broadcast_error";
-    //错误类型
-    static final String PUSH_BROADCAST_ERROR_TYPE    = "type";
-    //错误消息内容
-    static final String PUSH_BROADCAST_ERROR_CONTENT = "content";
     //推送消息广播
     static final String PUSH_BROADCAST_PUBLISH = "push_broadcast_publish";
-    //推送消息内容
-    static final String PUSH_BROADCAST_PUBLISH_CONTENT = "content";
 
-    private final Messenger mMessenger;
+    //接入帐号
+    static final String PUSH_BROADCAST_PARAMS_ACCOUNT = "account";
+
+    //消息类型
+    static final String PUSH_BROADCAST_PARAMS_TYPE    = "type";
+
+    //消息内容
+    static final String PUSH_BROADCAST_PARAMS_CONTENT = "content";
+
+    private Messenger mMessenger;
     private final int GRAY_SERVICE_ID;
 
     private boolean isStart = false, isRun = false;
@@ -51,7 +48,6 @@ public final class PushClientService extends Service implements PushSocket.PushS
      */
     public PushClientService(){
         GRAY_SERVICE_ID = (int) (System.currentTimeMillis() / 1000);
-        mMessenger = new Messenger(new IncomingHandler());
     }
 
     @Override
@@ -59,12 +55,18 @@ public final class PushClientService extends Service implements PushSocket.PushS
         logger.info("onCreate...");
         super.onCreate();
         //初始化socket对象
-        socket = new PushSocket(this);
+        if(socket == null) {
+            socket = new PushSocket(this, this);
+        }
+        //初始化Messager
+        if(mMessenger == null){
+            mMessenger = new Messenger(new IncomingHandler());
+        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        logger.info("onStartCommand-(flags:"+ flags +", startId:"+ startId +")...");
+        logger.info("onStartCommand-(intent:"+ intent +",flags:"+ flags +", startId:"+ startId +")...");
         try {
             //前台服务模式处理
             if (Build.VERSION.SDK_INT < 18) {
@@ -76,13 +78,6 @@ public final class PushClientService extends Service implements PushSocket.PushS
         }catch (Exception e){
             logger.warn("onStartCommand-启动前台守候服务模式异常:" + e.getMessage(), e);
         }
-        //注册广播
-        logger.info("onStartCommand-启动广播注册接收器...");
-        try {
-            addRegisterBroadcastReceiver(this, PUSH_BROADCAST_RESTART);//推送重启广播
-        }catch (Exception e){
-            logger.warn("onStartCommand-注册广播接收器异常:" + e.getMessage(), e);
-        }
         logger.info("onStartCommand(start:"+ isStart +",run:"+ isRun +")...");
         if(!isRun && isStart) {
             try {
@@ -93,28 +88,26 @@ public final class PushClientService extends Service implements PushSocket.PushS
                 logger.error("onStartCommand-start http exception:" + e.getMessage(), e);
             }
         }
+        //检查定时器
+        if(intent != null && socket != null){
+            switch (intent.getAction()){
+                case PushSocket.ACTION_RECEIVE:{//接收数据定时器
+                    socket.startReceive();
+                    break;
+                }
+                case PushSocket.ACTION_PING:{//接收心跳
+                    socket.startPing();
+                    break;
+                }
+                case PushSocket.ACTION_RECONNECT:{//接收重启
+                    socket.startReconnect();
+                    break;
+                }
+                default:break;
+            }
+        }
         //返回
         return Service.START_STICKY;
-    }
-
-    /**
-     * 添加注册广播接收器。
-     * @param context
-     * 上下文。
-     * @param action
-     * 广播action。
-     */
-    static void addRegisterBroadcastReceiver(final Context context, final String action){
-        logger.info("addRegisterBroadcastReceiver-action:" + action);
-        if(context == null){
-            logger.warn("addRegisterBroadcastReceiver-context为空!");
-            return;
-        }
-        if(action == null || action.trim().length() == 0){
-            logger.warn("addRegisterBroadcastReceiver-action为空!");
-            return;
-        }
-        context.registerReceiver(restartServiceReceiver, new IntentFilter(action));
     }
 
     @Override
@@ -170,9 +163,9 @@ public final class PushClientService extends Service implements PushSocket.PushS
         //接入帐号
         intent.putExtra(PUSH_BROADCAST_PARAMS_ACCOUNT, access.getAccount());
         //错误类型
-        intent.putExtra(PUSH_BROADCAST_ERROR_TYPE, status.getVal());
+        intent.putExtra(PUSH_BROADCAST_PARAMS_TYPE, status.getVal());
         //错误消息内容
-        intent.putExtra(PUSH_BROADCAST_ERROR_CONTENT, msg);
+        intent.putExtra(PUSH_BROADCAST_PARAMS_CONTENT, msg);
         //发送错误消息广播
         sendBroadcast(intent);
     }
@@ -193,7 +186,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
         //接入帐号
         intent.putExtra(PUSH_BROADCAST_PARAMS_ACCOUNT, access.getAccount());
         //广播消息内容
-        intent.putExtra(PUSH_BROADCAST_PUBLISH_CONTENT, model.toJson());
+        intent.putExtra(PUSH_BROADCAST_PARAMS_CONTENT, model.toJson());
         //发送推送消息广播
         sendBroadcast(intent);
     }
@@ -332,17 +325,6 @@ public final class PushClientService extends Service implements PushSocket.PushS
         @Override
         public IBinder onBind(Intent intent) {
             return null;
-        }
-    }
-
-    //重启服务广播接收器
-    private static class PushClientRestartServiceReceiver extends BroadcastReceiver{
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            logger.info("PushClientBroadcastReceiver-接收:action=" + action);
-            context.startService(new Intent(context, PushClientService.class));
         }
     }
 }

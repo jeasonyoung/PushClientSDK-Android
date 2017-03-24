@@ -1,6 +1,8 @@
 package com.linkus.push.sdk.socket;
 
+import android.content.Context;
 import android.os.AsyncTask;
+import com.linkus.push.sdk.PushClientService;
 import com.linkus.push.sdk.data.AccessData;
 import com.linkus.push.sdk.data.HttpRequestData;
 import com.linkus.push.sdk.data.SocketConfig;
@@ -10,14 +12,14 @@ import com.linkus.push.sdk.models.PingResponseModel;
 import com.linkus.push.sdk.models.PublishModel;
 import com.linkus.push.sdk.utils.HttpUtils;
 import com.linkus.push.sdk.utils.LogWrapper;
+import com.linkus.push.sdk.utils.NetUtils;
+import com.linkus.push.sdk.utils.PollingUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,14 +32,18 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class PushSocket implements CodecEncoder.CodecEncoderListener, CodecDecoder.CodecDecoderListener {
     private static final LogWrapper logger = LogWrapper.getLog(PushSocket.class);
-    private static final int BUF_SIZE = 1024, RECEIVE_WAIT_INTERVAL = 500;
+
+    //心跳
+    public static final String ACTION_PING = "push_socket_ping";
+    //接收消息
+    public static final String ACTION_RECEIVE = "push_socket_receive";
+    //重连
+    public static final String ACTION_RECONNECT = "push_socket_reconnect";
+
+    private static final int BUF_SIZE = 1024, RECEIVE_WAIT_INTERVAL = 2;
 
     private final PushSocketListener listener;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
-    private final AtomicBoolean isPing = new AtomicBoolean(false);
-    private final AtomicBoolean isReceive = new AtomicBoolean(false);
-
-    private Timer tPing;
 
     private final AtomicLong lastIdleTime = new AtomicLong(0L);
     private final AtomicInteger reconnectTotal = new AtomicInteger(0);
@@ -45,15 +51,20 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
     private final AtomicReference<Socket> refSocket = new AtomicReference<>();
     private final CopyOnWriteArrayList<String> receiverPushIdsCache = new CopyOnWriteArrayList<>();
 
-    private CodecDecoder decoder;
-    private CodecEncoder encoder;
+    private final CodecDecoder decoder;
+    private final CodecEncoder encoder;
+    private final Context context;
 
     /**
      * 构造函数函数。
+     * @param context
+     * 上下文。
      * @param listener
      * 事件监听器。
      */
-    public PushSocket(final PushSocketListener listener){
+    public PushSocket(final Context context, final PushSocketListener listener){
+        logger.debug("PushSocket=>" + listener);
+        this.context = context;
         this.listener = listener;
         this.decoder = new CodecDecoder(this);
         this.encoder = new CodecEncoder();
@@ -71,18 +82,25 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
      * 启动HTTP请求。
      */
     public void startHttp() throws Exception {
+        logger.debug("startHttp...");
         if (getIsRunning()) return;
         try {
-            logger.info("start http request...");
-            if (isRunning.get()) {
-                logger.info("socket already!");
+            logger.debug("start http request...");
+            if (getIsRunning()) {
+                logger.debug("socket already!");
                 return;
             }
             changedRunStatus(true);
+            //检查是否已有socket网络配置
+            if(refSocketConfig.get() != null){
+                logger.debug("socket config already!");
+                startSocket();
+                return;
+            }
             //加载访问配置
             final AccessData access = listener.loadAccessConfig();
             if (access == null) throw new RuntimeException("加载访问配置数据失败!");
-            logger.info("access=>" + access);
+            logger.debug("access=>" + access);
             //创建请求数据
             final HttpRequestData data = new HttpRequestData(access);
             //http请求
@@ -176,9 +194,11 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
     private void changedRunStatus(final boolean status){
         if(isRunning.get() != status) {
             isRunning.set(status);
-            if(!status && isPing.get()){
-                //停止心跳
-                isPing.set(false);
+            if(!status){
+                //停止心跳定时器
+                PollingUtils.stopPollingService(context, PushClientService.class, ACTION_PING);
+                //停止接收数据定时器
+                PollingUtils.stopPollingService(context, PushClientService.class, ACTION_RECEIVE);
             }
             if(listener != null){
                 listener.socketChangedRunStatus(status);
@@ -208,7 +228,14 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                         logger.error("socket port["+ cfg.getPort() +"] is invalid!");
                         return false;
                     }
-                    final Socket socket = new Socket(cfg.getServer(), cfg.getPort());
+                    //判断服务器是否为IP
+                    final String serverIP = NetUtils.convertToIPAddr(cfg.getServer());
+                    if(serverIP == null || serverIP.length() == 0){
+                        logger.error("server host to ip fail("+ cfg.getServer() +"=>"+ serverIP +")!");
+                        return false;
+                    }
+                    //连接服务器
+                    final Socket socket = new Socket(serverIP, cfg.getPort());
                     if (!socket.isConnected()) {//连接服务器失败
                         logger.warn("socket connect fail!");
                         changedRunStatus(false);
@@ -226,7 +253,6 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                 }
                 return false;
             }
-
             @Override
             protected void onPostExecute(Boolean result) {
                 if(!result) return;
@@ -239,6 +265,8 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                     }
                     //启动消息接收子线程
                     startReceive();
+                    //启动接收消息定时器
+                    PollingUtils.startPollingService(context, RECEIVE_WAIT_INTERVAL, PushClientService.class, ACTION_RECEIVE);
                     //发送连接请求
                     encoder.encodeConnectRequest(access, PushSocket.this);
                 }catch (Exception e){
@@ -248,9 +276,12 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
         }.execute((Void)null);
     }
 
-    //启动消息接收子线程
-    private synchronized void startReceive() throws Exception {
-        if (!isRunning.get()) {
+    private final AtomicBoolean isReceive = new AtomicBoolean(false);
+    /**
+     * 启动socket消息接收。
+     */
+    public void startReceive() {
+        if(!isRunning.get()){
             logger.warn("socket running is stop, no start receive!");
             return;
         }
@@ -258,69 +289,115 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             logger.warn("socket receive thread is run!");
             return;
         }
-        //创建接收消息子线程
-        final Thread tReceive = new Thread(new Runnable() {
+        //启动接收消息线程
+        new AsyncTask<Void,Void,byte[]>(){
             @Override
-            public void run() {
-                logger.debug("start receive run[" + Thread.currentThread() + "] ...");
-                isReceive.set(true);
+            protected byte[] doInBackground(Void... voids) {
                 try {
-                    int count;
+                    if(isReceive.get()){
+                        logger.debug("socket receive thread["+ Thread.currentThread() +"] is run!");
+                        return null;
+                    }
+                    isReceive.set(true);//设置消息正在接收中
+                    if(!isRunning.get()){
+                        logger.debug("socket is stop!");
+                        return null;
+                    }
+                    //获取套接字
                     final Socket socket = refSocket.get();
                     if(socket == null){
-                        logger.debug("socket is null !");
-                        return;
+                        logger.debug("socket is null!");
+                        return null;
                     }
+                    //开始接收数据
                     byte buf[] = new byte[BUF_SIZE];
                     final ByteArrayOutputStream data = new ByteArrayOutputStream(BUF_SIZE);
                     //从socket获取数据
                     final DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-                    while (isRunning.get() && socket.isConnected() && !socket.isClosed()) {
-                        try {
-                            //重置输出
-                            if (data.size() > 0) data.reset();
-                            logger.debug("socket receive wait data...");
-                            //循环读取数据
-                            count = inputStream.read(buf, 0, buf.length);
-                            if (count > 0) {
-                                data.write(buf, 0, count);
-                            }
-                            //已读取数据
-                            if (data.size() > 0) {
-                                logger.info("socket receive read data:" + data.size());
-                                //更新时间戳
-                                lastIdleTime.set(System.currentTimeMillis());
-                                try {
-                                    //解析消息
-                                    decoder.addDecode(data.toByteArray());
-                                } catch (Exception e) {
-                                    logger.warn("receive data parse exception:" + e.getMessage(), e);
-                                }
-                            }
-                            //线程等待
-                            logger.debug("receive thread wait[" + RECEIVE_WAIT_INTERVAL + " ms]=>" + lastIdleTime.get());
-                            Thread.sleep(RECEIVE_WAIT_INTERVAL);
-                            //检查接收socket消息是否继续
-                            if (!isReceive.get()) break;
-                        }catch (SocketException ex){
-                            changedRunStatus(false);
-                            logger.error("receive thread socket exception:" + ex.getMessage(), ex);
-                        } catch (Exception ex) {
-                            logger.error("receive thread exception:" + ex.getMessage(), ex);
-                        }
+                    logger.debug("socket receive wait data...");
+                    //循环读取数据
+                    int count;
+                    while ((count = inputStream.read(buf, 0, buf.length)) > 0){
+                        data.write(buf, 0, count);
                     }
-                } catch (Exception e) {
-                    logger.warn("run receive exception =>" + e.getMessage(), e);
-                } finally {
-                    isReceive.set(false);
-                    logger.info("receive thread finish!");
+                    //已读取数据
+                    if (data.size() > 0) {
+                        lastIdleTime.set(System.currentTimeMillis());//更新时间戳
+                        logger.info("socket receive read data:" + data.size());
+                        return data.toByteArray();
+                    }
+                }catch (SocketException e){
+                    logger.error("receive thread socket exception:" + e.getMessage(), e);
+                    changedRunStatus(false);
+                }catch (Exception ex){
+                    logger.error("receive thread exception:" + ex.getMessage(), ex);
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(byte[] bytes) {
+                try{
+                    if(bytes == null || bytes.length == 0) return;
+                    //开始解析数据
+                    decoder.addDecode(bytes);
+                }catch (Exception e){
+                    logger.warn("receive data parse exception:" + e.getMessage(), e);
+                }finally {
+                    isReceive.set(false);//设置消息已接收完成
                 }
             }
-        });
-        //设置线程为守候线程
-        tReceive.setDaemon(true);
-        //启动线程
-        tReceive.start();
+        }.execute((Void)null);
+    }
+
+    private final AtomicBoolean isPing = new AtomicBoolean(false);
+
+    //启动心跳循环线程
+    public void startPing(){
+        if(!isRunning.get()){
+            logger.debug("socket is stop!");
+        }
+        if(isPing.get()){
+            logger.info("ping has started!");
+            return;
+        }
+        //启动心跳线程
+        new AsyncTask<Void,Void,Boolean>(){
+            @Override
+            protected Boolean doInBackground(Void... voids) {
+                try {
+                    if (isPing.get()) return false;
+                    isPing.set(true);
+                    //检查是否在运行状态
+                    if (!isRunning.get()) {//取消心跳执行
+                        logger.warn("socket running is stop so send ping cancel! =>thread:" + Thread.currentThread());
+                        return false;
+                    }
+                    //检查是否应该发送心跳数据
+                    final long lastIdle = lastIdleTime.get(), current = System.currentTimeMillis();
+                    final int interval = refSocketConfig.get().getRate() * 1000;
+                    return  (lastIdle > 0) && (current - lastIdle > interval);
+                }catch (Exception e){
+                    logger.error("send ping exception[thread:"+ Thread.currentThread() +"]:" + e.getMessage(), e);
+                }
+                return false;
+            }
+
+            @Override
+            protected void onPostExecute(final Boolean aBoolean) {
+                try{
+                    if(aBoolean){
+                        logger.debug("start send ping[thread:" + Thread.currentThread() + "]...");
+                        encoder.encodePingRequest(listener.loadAccessConfig(), PushSocket.this);
+                        logger.debug("send ping successful![thread:" + Thread.currentThread() + "]");
+                    }
+                }catch (Exception e){
+                    logger.error("send ping message exception:"+ e.getMessage(), e);
+                }finally {
+                    isPing.set(false);
+                }
+            }
+        }.execute((Void)null);
     }
 
     //消息编码
@@ -361,7 +438,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
 
     //消息解码
     @Override
-    public void decode(MessageType type, Object model) {
+    public void decode(final MessageType type, final Object model) {
         logger.info("receive message("+ type +")=>" + model);
         switch (type){
             case Connack://连接请求应答
@@ -378,7 +455,13 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                 //连接应答,启动心跳
                 if(type == MessageType.Connack){
                     try {
-                        startPing(false);
+                        //获取心跳配置
+                        final SocketConfig sc = refSocketConfig.get();
+                        if(sc == null) throw new Exception("获取socket配置数据失败!");
+                        if(sc.getRate() > 0) {
+                            //启动心跳循环处理
+                            PollingUtils.startPollingService(context, sc.getRate(), PushClientService.class, ACTION_PING);
+                        }
                     }catch (Exception e){
                         logger.error("start ping exception:" + e.getMessage(), e);
                         listener.socketErrorMessage(AckResult.Runntime, e.getMessage());
@@ -407,40 +490,42 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             case Pingresp: {//心跳请求应答
                 PingResponseModel data = (PingResponseModel)model;
                 if(data != null){
-                    if(data.getHeartRate() > 0) {
+                    final int rate, after;
+                    if((rate = data.getHeartRate()) > 0) {
                         final SocketConfig socketConfig = refSocketConfig.get();
                         if (socketConfig == null) return;
-                        socketConfig.setRate(data.getHeartRate());
+                        socketConfig.setRate(rate);
                         refSocketConfig.set(socketConfig);
                         try {
                             //心跳频率发送变化重启心跳
-                            startPing(true);
+                            //关闭心跳定时
+                            PollingUtils.stopPollingService(context, PushClientService.class, ACTION_PING);
+                            //重启心跳定时器
+                            PollingUtils.startPollingService(context, rate, PushClientService.class, ACTION_PING);
                         } catch (Exception e) {
                             logger.error("restart ping exception:" + e.getMessage(), e);
                             listener.socketErrorMessage(AckResult.Runntime, e.getMessage());
                         }
                     }
-                    if(data.getAfterConnect() > 0){
+                    if((after = data.getAfterConnect()) > 0){
                         isRunning.set(true);//关闭运行状态
                         final SocketConfig socketConfig = refSocketConfig.get();
                         if(socketConfig == null) return;
                         //设置数据
-                        socketConfig.setReconnect(data.getAfterConnect());
+                        socketConfig.setReconnect(after);
                         refSocketConfig.set(socketConfig);
                         //关闭socket
                         final Socket socket;
                         if((socket = refSocket.get()) != null){
                             try {
+                                changedRunStatus(false);
                                 socket.close();
                                 refSocket.set(null);
                             }catch (Exception e){
                                 logger.warn("shutdown socket exception:" + e.getMessage(), e);
                             }finally {
-                                try {
-                                    startReconnect();
-                                }catch (Exception e){
-                                    logger.warn("reconnect socket exception:" + e.getMessage(), e);
-                                }
+                                //启动重连定时器
+                                PollingUtils.startPollingService(context, after, PushClientService.class, ACTION_RECONNECT);
                             }
                         }
                     }
@@ -450,72 +535,30 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
         }
     }
 
-    //启动心跳循环线程
-    private void startPing(final boolean isRestart) throws Exception{
-        if(!isRestart && isPing.get()){
-            logger.info("ping has started!");
-            return;
-        }
-        final SocketConfig socketConfig = refSocketConfig.get();
-        if(socketConfig == null){
-            logger.error("load socket config fail!");
-            return;
-        }
-        final int rate = socketConfig.getRate() * 1000;
-        if(rate <= 0) return;
-        if(isRestart && tPing != null && isPing.get()){
-            isPing.set(false);//停止心跳状态
-            tPing.cancel();//取消心跳定时器
-            logger.info("start restart ping...");
-        }
-        //创建心跳定时器(守候线程)
-        tPing = new Timer(true);
-        tPing.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    if (isPing.get()) return;
-                    isPing.set(true);
-                    //检查是否在运行状态
-                    if (!isRunning.get()) {//取消心跳执行
-                        logger.warn("socket running is stop so send ping cancel! =>thread:" + Thread.currentThread());
-                        return;
-                    }
-                    //检查是否应该发送心跳数据
-                    final long lastIdle = lastIdleTime.get(), current = System.currentTimeMillis();
-                    final int interval = socketConfig.getRate() * 1000;
-                    final AccessData access = listener.loadAccessConfig();
-                    if (lastIdle > 0 && (current - lastIdle > interval) && access != null) {
-                        logger.info("start send ping[thread:"+ Thread.currentThread() +"]...");
-                        //发送心跳
-                        encoder.encodePingRequest(access, PushSocket.this);
-                        logger.info("send ping successful![thread:"+ Thread.currentThread() +"]");
-                    }
-                } catch (Exception e) {
-                    logger.error("send ping exception[thread:"+ Thread.currentThread() +"]:" + e.getMessage(), e);
-                } finally {
-                    isPing.set(false);
-                    logger.info("send ping finish[thread:"+ Thread.currentThread() +"]!");
-                }
-            }
-        }, rate, rate);
-    }
 
+    private final AtomicBoolean isRestart = new AtomicBoolean(false);
     /**
      * 启动重连子线程。
      */
-    public synchronized void startReconnect() throws Exception{
-        if(isRunning.get() || refSocketConfig.get() == null) return;
+    public void startReconnect(){
         logger.debug("start reconnect...");
+        if(isRunning.get() || refSocketConfig.get() == null) return;
         //重置重连次数计数器
         if(reconnectTotal.get() > 0){
             reconnectTotal.set(0);
+        }
+        if(isRestart.get()){
+            logger.debug("start reconnect is start...");
+            return;
         }
         //创建重连子线程
         final Thread tReconnect = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
+                    if(isRestart.get()) return;
+                    isRestart.set(true);
+                    //
                     SocketConfig config;
                     //检查是否符合重启条件
                     while (!isRunning.get() && (config = refSocketConfig.get()) != null
@@ -538,6 +581,11 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                     }
                 } catch (Exception e) {
                     logger.error("start reconnect exception:" + e.getMessage(), e);
+                }finally {
+                    isRestart.set(false);
+                    if(isRunning.get()) {//关闭重连定时器
+                        PollingUtils.stopPollingService(context, PushClientService.class, ACTION_RECONNECT);
+                    }
                 }
             }
         });

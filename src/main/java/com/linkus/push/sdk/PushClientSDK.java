@@ -47,10 +47,6 @@ public final class PushClientSDK implements Closeable {
         logger.info("connect push service..");
         final Intent intent = new Intent(context, PushClientService.class);
         this.context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-
-        //注册广播
-        //logger.info("register push restart broadcast...");
-        //PushClientService.addRegisterBroadcastReceiver(context, PushClientService.PUSH_BROADCAST_RESTART);
     }
 
     /**
@@ -66,6 +62,7 @@ public final class PushClientSDK implements Closeable {
      */
     public void start(final String host, final String account, final String password, final String deviceToken){
         logger.info("启动推送客户端...");
+
         if(host == null || host.length() == 0){
             throw new IllegalArgumentException("host");
         }

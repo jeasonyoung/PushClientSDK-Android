@@ -72,7 +72,7 @@ public abstract class PushClientReceiver extends BroadcastReceiver {
     //接收推送消息处理
     private void receiverPublishHandler(final Intent intent) throws Exception{
         //获取推送消息内容
-        final String content = intent.getStringExtra(PUSH_BROADCAST_PUBLISH_CONTENT);
+        final String content = intent.getStringExtra(PUSH_BROADCAST_PARAMS_CONTENT);
         logger.info("receiverPublishHandler=>" + content);
         if(content == null || content.length() == 0) return;
         //消息解码
@@ -91,9 +91,9 @@ public abstract class PushClientReceiver extends BroadcastReceiver {
 
     //接收错误消息处理
     private void receiverErrorHandler(final Intent intent) throws Exception{
-        final AckResult type = AckResult.parse(intent.getIntExtra(PUSH_BROADCAST_ERROR_TYPE, 0));
+        final AckResult type = AckResult.parse(intent.getIntExtra(PUSH_BROADCAST_PARAMS_TYPE, 0));
         if(type == null) return;
-        final String content = intent.getStringExtra(PUSH_BROADCAST_ERROR_CONTENT);
+        final String content = intent.getStringExtra(PUSH_BROADCAST_PARAMS_CONTENT);
         logger.info("receiverErrorHandler["+ type +"]=>" + content);
         receiverErrorHandler(type, content);
     }
