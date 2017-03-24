@@ -40,7 +40,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
     //重连
     public static final String ACTION_RECONNECT = "push_socket_reconnect";
 
-    private static final int BUF_SIZE = 1024, RECEIVE_WAIT_INTERVAL = 2;
+    private static final int BUF_SIZE = 1024, RECEIVE_WAIT_INTERVAL = 500;
 
     private final PushSocketListener listener;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -267,7 +267,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                     //启动消息接收子线程
                     startReceive();
                     //启动接收消息定时器
-                    PollingUtils.startPollingService(context, RECEIVE_WAIT_INTERVAL, PushClientService.class, ACTION_RECEIVE);
+                    PollingUtils.startPollingService(context, Math.max(RECEIVE_WAIT_INTERVAL/100, 1), PushClientService.class, ACTION_RECEIVE);
                     //发送连接请求
                     encoder.encodeConnectRequest(access, PushSocket.this);
                 }catch (Exception e){
