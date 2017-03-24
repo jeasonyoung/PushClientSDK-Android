@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -18,7 +19,9 @@ public final class NetUtils {
     private static final Object lock = new Object();
 
     private static boolean hasIPAddress(final String ipAddr){
-        return Pattern.matches(regex_ip, ipAddr);
+        final Pattern pattern = Pattern.compile(regex_ip);
+        final Matcher matcher = pattern.matcher(ipAddr);
+        return matcher.matches();
     }
 
     public static String convertToIPAddr(final String server){
