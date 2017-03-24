@@ -18,8 +18,10 @@ public final class NetUtils {
     private static final Map<String,String> ip_cache = new HashMap<>();
     private static final Object lock = new Object();
 
+    private static final Pattern pattern = Pattern.compile(regex_ip);
+
     private static boolean hasIPAddress(final String ipAddr){
-        final Pattern pattern = Pattern.compile(regex_ip);
+        if(ipAddr == null || ipAddr.length() == 0) return false;
         final Matcher matcher = pattern.matcher(ipAddr);
         return matcher.matches();
     }
