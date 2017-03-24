@@ -290,61 +290,54 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             logger.warn("socket receive thread is run!");
             return;
         }
-        //启动接收消息线程
-        new AsyncTask<Void,Void,byte[]>(){
+        new Thread(new Runnable() {
             @Override
-            protected byte[] doInBackground(Void... voids) {
+            public void run() {
+                //检查是否有接收器运行
+                if(isReceive.get()) return;
+                isReceive.set(true);
                 try {
-                    if(isReceive.get()){
-                        logger.debug("socket receive thread["+ Thread.currentThread() +"] is run!");
-                        return null;
-                    }
-                    isReceive.set(true);//设置消息正在接收中
-                    if(!isRunning.get()){
-                        logger.debug("socket is stop!");
-                        return null;
-                    }
-                    //获取套接字
                     final Socket socket = refSocket.get();
-                    if(socket == null){
-                        logger.debug("socket is null!");
-                        return null;
-                    }
-                    //开始接收数据
-                    byte buf[] = new byte[BUF_SIZE];
-                    //从socket获取数据
-                    final DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-                    logger.debug("socket receive wait data...");
-                    //读取数据
-                    final int count = inputStream.read(buf, 0, buf.length);
-                    if(count > 0) {
-                        lastIdleTime.set(System.currentTimeMillis());//更新时间戳
+                    if(socket != null){
                         final ByteArrayOutputStream data = new ByteArrayOutputStream(BUF_SIZE);
-                        data.write(buf, 0, count);
-                        logger.info("socket receive read data:" + data.size());
-                        return data.toByteArray();
+                        byte buf[] = new byte[BUF_SIZE];
+                        int count;
+                        //从socket获取数据
+                        final DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                        while (isRunning.get() && socket.isConnected() && !socket.isClosed()) {
+                            //重置输出
+                            if(data.size() > 0) data.reset();
+                            logger.debug("socket receive wait data...");
+                            count = inputStream.read(buf, 0, buf.length);
+                            if (count > 0) {
+                                data.write(buf, 0, count);
+                                //更新时间戳
+                                lastIdleTime.set(System.currentTimeMillis());
+                                logger.info("socket receive read data:" + count);
+                                try {
+                                    //解析消息
+                                    decoder.addDecode(data.toByteArray());
+                                } catch (Exception e) {
+                                    logger.warn("receive data parse exception:" + e.getMessage(), e);
+                                }
+                                //线程等待
+                                logger.debug("receive thread wait[" + RECEIVE_WAIT_INTERVAL + " ms]=>" + lastIdleTime.get());
+                                Thread.sleep(RECEIVE_WAIT_INTERVAL);
+                            }
+                            //检查接收socket消息是否继续
+                            if (!isReceive.get()) break;
+                        }
                     }
                 }catch (SocketException e){
-                    logger.error("receive thread socket exception:" + e.getMessage(), e);
                     changedRunStatus(false);
+                    logger.error("receive thread socket exception:" + e.getMessage(), e);
                 }catch (Exception ex){
                     logger.error("receive thread exception:" + ex.getMessage(), ex);
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(byte[] bytes) {
-                try{
-                    isReceive.set(false);//设置消息已接收完成
-                    if(bytes == null || bytes.length == 0) return;
-                    //开始解析数据
-                    decoder.addDecode(bytes);
-                }catch (Exception e){
-                    logger.warn("receive data parse exception:" + e.getMessage(), e);
+                }finally {
+                    isReceive.set(false);
                 }
             }
-        }.execute((Void)null);
+        }).start();
     }
 
     private final AtomicBoolean isPing = new AtomicBoolean(false);
