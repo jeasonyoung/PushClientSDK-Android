@@ -38,6 +38,7 @@ public final class PushClientSDK implements Closeable {
     public PushClientSDK(final Context context) {
         if (context == null) throw new IllegalArgumentException("context");
         this.context = context;
+        LogWrapper.registerRootDir(context.getCacheDir());
 
         //启动服务
         logger.info("start push service...");
