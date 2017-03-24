@@ -234,6 +234,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                         logger.error("server host to ip fail("+ cfg.getServer() +"=>"+ serverIP +")!");
                         return false;
                     }
+                    logger.debug("socket server("+ cfg.getServer() +"=>"+ serverIP +")...");
                     //连接服务器
                     final Socket socket = new Socket(serverIP, cfg.getPort());
                     if (!socket.isConnected()) {//连接服务器失败
