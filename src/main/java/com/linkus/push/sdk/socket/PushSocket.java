@@ -336,13 +336,12 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             @Override
             protected void onPostExecute(byte[] bytes) {
                 try{
+                    isReceive.set(false);//设置消息已接收完成
                     if(bytes == null || bytes.length == 0) return;
                     //开始解析数据
                     decoder.addDecode(bytes);
                 }catch (Exception e){
                     logger.warn("receive data parse exception:" + e.getMessage(), e);
-                }finally {
-                    isReceive.set(false);//设置消息已接收完成
                 }
             }
         }.execute((Void)null);
@@ -384,6 +383,8 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             @Override
             protected void onPostExecute(final Boolean aBoolean) {
                 try{
+                    isPing.set(false);
+                    logger.debug("ping is start send=>" + aBoolean);
                     if(aBoolean){
                         logger.debug("start send ping[thread:" + Thread.currentThread() + "]...");
                         encoder.encodePingRequest(listener.loadAccessConfig(), PushSocket.this);
@@ -391,8 +392,6 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                     }
                 }catch (Exception e){
                     logger.error("send ping message exception:"+ e.getMessage(), e);
-                }finally {
-                    isPing.set(false);
                 }
             }
         }.execute((Void)null);
