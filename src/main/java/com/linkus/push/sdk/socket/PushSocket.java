@@ -238,6 +238,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                     final Socket socket = new Socket(serverIP, cfg.getPort());
                     if (!socket.isConnected()) {//连接服务器失败
                         logger.warn("socket connect fail!");
+                        NetUtils.clearCache(cfg.getServer());
                         changedRunStatus(false);
                         return false;
                     }
