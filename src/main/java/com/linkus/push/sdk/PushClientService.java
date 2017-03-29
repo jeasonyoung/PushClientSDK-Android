@@ -20,7 +20,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
     private static final LogWrapper logger = LogWrapper.getLog(PushClientService.class);
 
     //重启广播Action
-    private static final String PUSH_BROADCAST_RESTART = "push_broadcast_restart";
+    static final String PUSH_BROADCAST_RESTART = "push_broadcast_restart";
     //错误信息广播Action
     static final String PUSH_BROADCAST_ERROR   = "push_broadcast_error";
     //推送消息广播
@@ -126,9 +126,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
         logger.info("onDestroy...");
         super.onDestroy();
         //发送重启广播
-        Intent intent = new Intent();
-        intent.setAction(PUSH_BROADCAST_RESTART);
-        sendBroadcast(intent);
+        sendBroadcast(new Intent(PUSH_BROADCAST_RESTART));
     }
 
     @Override

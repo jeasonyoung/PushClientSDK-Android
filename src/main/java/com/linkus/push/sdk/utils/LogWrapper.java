@@ -21,10 +21,7 @@ public final class LogWrapper {
     private final String tag;
 
     private static final String def_prefix = "pushclient";
-    //private static final File root = new File(Environment.getDataDirectory(), def_prefix);
-
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
 
     private static File root = null;
 
@@ -179,7 +176,7 @@ public final class LogWrapper {
             //定位到文件尾部
             randomAccessFile.seek(randomAccessFile.length());
             //写入消息
-            randomAccessFile.writeUTF(message);
+            randomAccessFile.writeUTF("\n\n" + message);
         }
     }
 }

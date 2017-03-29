@@ -60,6 +60,11 @@ public abstract class PushClientReceiver extends BroadcastReceiver {
             default:{//触发激活推送服务
                 try {
                     logger.info("激活推送服务广播-接收:action=" + action);
+                    if(!account.equalsIgnoreCase(PushClientService.PUSH_BROADCAST_RESTART)){
+                        //启动守护服务
+                        context.startService(new Intent(context, PushClientDeamonService.class));
+                    }
+                    //启动通讯服务
                     context.startService(new Intent(context, PushClientService.class));
                 }catch (Exception e){
                     logger.error("onReceive-["+ action +"]-exception:" + e.getMessage(), e);
