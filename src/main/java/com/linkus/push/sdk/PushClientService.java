@@ -183,13 +183,13 @@ public final class PushClientService extends Service implements PushSocket.PushS
             logger.error("socketPublish-加载配置文件失败!");
             return;
         }
-        final Intent intent = new Intent();
         //推送消息广播
-        intent.setAction(PUSH_BROADCAST_PUBLISH);
+        final Intent intent = new Intent(PUSH_BROADCAST_PUBLISH);
         //接入帐号
         intent.putExtra(PUSH_BROADCAST_PARAMS_ACCOUNT, access.getAccount());
         //广播消息内容
         intent.putExtra(PUSH_BROADCAST_PARAMS_CONTENT, model.toJson());
+        logger.info("socketPublish[发送推送消息广播]=>" + intent);
         //发送推送消息广播
         sendBroadcast(intent);
     }
