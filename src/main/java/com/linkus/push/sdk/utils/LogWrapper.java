@@ -20,7 +20,7 @@ public final class LogWrapper {
     private static final Map<Class<?>, LogWrapper> cache = new HashMap<>();
     private final String tag;
 
-    private static final String def_prefix = "pushclient";
+    private static final String def_prefix = "pushSDK";
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private static File root = null;
@@ -133,7 +133,7 @@ public final class LogWrapper {
     private static String LogFileNamePrefix(final String prefix){
         synchronized (lock) {
             final SimpleDateFormat sf = new SimpleDateFormat("yyyyMMddHH");
-            return def_prefix + "_" + prefix + sf.format(new Date()) + ".log";
+            return def_prefix + "_" + prefix + "_" + sf.format(new Date()) + ".log";
         }
     }
 
