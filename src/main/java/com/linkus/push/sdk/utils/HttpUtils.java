@@ -24,9 +24,12 @@ public final class HttpUtils {
     private static final int    POST_TIMEOUT = 5000;
     private static final String APPLICATION_JSON = "application/json";
 
-    private static final String PARAMS_RESULT    = "result";
-    private static final String PARAMS_MESSAGE   = "message";
+    public static final String PARAMS_RESULT    = "result";
+    public static final String PARAMS_MESSAGE   = "message";
     private static final String PARAMS_SETTING   = "setting";
+
+    public static final String SRV_URL_PREFIX = "http";
+    public static final String SRV_URL_SUFFIX = "/push-http-connect/v1/callback/connect.do";
 
     /**
      * 异步提交请求。

@@ -9,6 +9,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import com.linkus.push.sdk.data.AccessData;
+import com.linkus.push.sdk.utils.HttpUtils;
 import com.linkus.push.sdk.utils.LogWrapper;
 
 import java.io.Closeable;
@@ -20,9 +21,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class PushClientSDK implements Closeable {
     private static final LogWrapper logger = LogWrapper.getLog(PushClientSDK.class);
-
-    private static final String SRV_URL_PREFIX = "http";
-    private static final String SRV_URL_SUFFIX = "/push-http-connect/v1/callback/connect.do";
 
     private final AccessData access = new AccessData();
 
@@ -82,19 +80,19 @@ public final class PushClientSDK implements Closeable {
         //检查host格式
         final StringBuilder urlBuilder = new StringBuilder();
         //检查头部
-        if(!host.startsWith(SRV_URL_PREFIX)){
-            urlBuilder.append(SRV_URL_PREFIX).append("://");
+        if(!host.startsWith(HttpUtils.SRV_URL_PREFIX)){
+            urlBuilder.append(HttpUtils.SRV_URL_PREFIX).append("://");
         }
         //添加host
         urlBuilder.append(host);
         //检查尾部
-        if(host.endsWith(SRV_URL_SUFFIX)){
-            throw new IllegalArgumentException("host不要包含子路径=>" + SRV_URL_SUFFIX);
+        if(host.endsWith(HttpUtils.SRV_URL_SUFFIX)){
+            throw new IllegalArgumentException("host不要包含子路径=>" + HttpUtils.SRV_URL_SUFFIX);
         }
         if(host.endsWith("/")){
-            urlBuilder.append(SRV_URL_SUFFIX.substring(1));
+            urlBuilder.append(HttpUtils.SRV_URL_SUFFIX.substring(1));
         }else{
-            urlBuilder.append(SRV_URL_SUFFIX);
+            urlBuilder.append(HttpUtils.SRV_URL_SUFFIX);
         }
         //设置访问设置数据
         access.setAccessData(urlBuilder.toString(), account.trim(), password.trim(), deviceToken.trim());

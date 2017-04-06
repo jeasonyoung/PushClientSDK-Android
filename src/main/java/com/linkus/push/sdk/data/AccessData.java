@@ -9,7 +9,7 @@ import android.os.Parcelable;
  * 接入数据。
  * Created by jeasonyoung on 2017/3/3.
  */
-public final class AccessData implements Parcelable {
+public final class AccessData implements IAccessConfig, Parcelable {
     private static final String bundle_key = AccessData.class.getSimpleName();
 
     private String url, account, password, deviceToken, deviceName, tag;

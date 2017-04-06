@@ -2,12 +2,12 @@ package com.linkus.push.sdk.utils;
 
 import android.os.AsyncTask;
 import android.util.Log;
+import com.linkus.push.sdk.data.IAccessConfig;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 日志包装器。
@@ -21,7 +21,8 @@ public final class LogWrapper {
     private final String tag;
 
     private static final String def_prefix = "pushSDK";
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static final SimpleDateFormat sdf_content = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static final SimpleDateFormat sdf_file = new SimpleDateFormat("yyyyMMddHH");
 
     private static File root = null;
 
@@ -110,7 +111,7 @@ public final class LogWrapper {
                     final File path = createLogFile(prefix);
                     if(path == null) return null;
                     final StringBuilder sb = new StringBuilder();
-                    sb.append("[").append(dateFormat.format(new Date())).append("]")
+                    sb.append("[").append(sdf_content.format(new Date())).append("]")
                             .append("[").append(prefix).append("]")
                             .append(msg);
                     if(e != null){
@@ -132,8 +133,7 @@ public final class LogWrapper {
     //日志文件名前缀
     private static String LogFileNamePrefix(final String prefix){
         synchronized (lock) {
-            final SimpleDateFormat sf = new SimpleDateFormat("yyyyMMddHH");
-            return def_prefix + "_" + prefix + "_" + sf.format(new Date()) + ".log";
+            return def_prefix + "_" + prefix + "_" + sdf_file.format(new Date()) + ".log";
         }
     }
 
@@ -158,6 +158,10 @@ public final class LogWrapper {
             if (path.exists()) return path;
             try {
                 final boolean result = path.createNewFile();
+                if(result){
+                    String initMessage = "-------------------------------------\n push sdk ["+ prefix +"] log \n-------------------------------------\n";
+                    writeLocalFile(path, initMessage);
+                }
                 Log.d(TAG, "创建日志记录文件[" + result + "]=>" + path.getAbsolutePath());
             } catch (Exception e) {
                 Log.e(TAG, "创建日志记录文件异常:" + e.getMessage());
@@ -171,12 +175,78 @@ public final class LogWrapper {
     private static void writeLocalFile(final File path, final String message)
             throws IOException{
         synchronized (lock) {
-            //初始化读写随机文件
-            final RandomAccessFile randomAccessFile = new RandomAccessFile(path, "rw");
-            //定位到文件尾部
-            randomAccessFile.seek(randomAccessFile.length());
-            //写入消息
-            randomAccessFile.writeUTF("\n\n" + message);
+            RandomAccessFile randomAccessFile = null;
+            try {
+                //初始化读写随机文件
+                randomAccessFile = new RandomAccessFile(path, "rw");
+                //定位到文件尾部
+                randomAccessFile.seek(randomAccessFile.length());
+                //写入消息
+                randomAccessFile.writeUTF("\n\n" + message);
+            }catch (Exception e){
+                Log.e(TAG,"writeLocalFile[path:"+path+",message:"+ message +"]-写入文件异常:\n" + e.getMessage());
+            }finally {
+                if(randomAccessFile != null){
+                    //关闭文件
+                    randomAccessFile.close();
+                }
+            }
         }
+    }
+
+    private static final AtomicBoolean atomIsUploadFiles = new AtomicBoolean(false);
+    /**
+     * 上传日志文件。
+     */
+    public static void uploadLogFiles(final IAccessConfig config){
+        if(config.getDeviceToken() == null || config.getDeviceToken().length() == 0) return;
+        if(atomIsUploadFiles.get()) return;
+        //开始执行日志文件上传
+        new AsyncTask<Void,Void,Void>(){
+            @Override
+            protected Void doInBackground(Void... voids) {
+                //重置开始上传标示
+                atomIsUploadFiles.set(true);
+                try {
+                    if(root.exists()) {//检查日志存储根目录是否存在
+                        final String current = sdf_file.format(new Date());
+                        //搜索目录下的日志文件
+                        final File[] lists = root.listFiles();
+                        if(lists != null && lists.length > 0){
+                            final List<File> deleteFiles = new ArrayList<>();
+                            //上传文件
+                            for(File file : lists){
+                                if(!file.exists() || file.getName().contains(current)) continue;
+                                try{
+                                    if(LogUploadUtils.uploader(config, file)){
+                                        deleteFiles.add(file);
+                                    }
+                                }catch (Exception ex){
+                                    Log.e(TAG, "uploadLogFiles-上传文件["+ file.getAbsolutePath() +"]异常:" + ex.getMessage());
+                                }
+                            }
+                            //删除已上传成功的文件
+                            if(deleteFiles.size() > 0){
+                                for (File file : deleteFiles){
+                                    try {
+                                        if (!file.exists()) continue;
+                                        boolean result = file.delete();
+                                        Log.d(TAG,"uploadLogFiles-删除日志文件["+ result +"]=>" + file.getAbsolutePath());
+                                    }catch (Exception ex){
+                                        Log.e(TAG, "uploadLogFiles-删除日志文件["+ file.getAbsolutePath() +"]失败-异常:" + ex.getMessage());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }catch (Exception e){
+                    Log.e(TAG,"日志文件上传异常:" + e.getMessage());
+                }finally {
+                    //重置开始上传标示
+                    atomIsUploadFiles.set(false);
+                }
+                return null;
+            }
+        }.execute((Void)null);
     }
 }

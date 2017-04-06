@@ -22,9 +22,6 @@ public class ConnectRequestModel extends RequestModel {
      */
     private static final String PARAMS_DEVICE_ACCOUNT = "deviceAccount";
 
-    //设备类型-2 android
-    private static final int CURRENT_DEVICE_TYPE = 2;//android
-
     private String deviceName,deviceAccount;
     private final Integer deviceType;
 

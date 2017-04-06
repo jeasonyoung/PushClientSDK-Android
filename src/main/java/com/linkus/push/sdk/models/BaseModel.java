@@ -132,7 +132,7 @@ public abstract class BaseModel {
             //4.数组类型
             if((value instanceof Collection)) {
                 if(((Collection)value).size() == 0) continue;
-                kv.add(entry.getKey() + "=" + join(((Collection)value).iterator(), ","));
+                kv.add(entry.getKey() + "=" + DigestUtils.join(((Collection)value).iterator(), ","));
                 continue;
             }
             //5.字符串为空
@@ -148,32 +148,7 @@ public abstract class BaseModel {
             Collections.sort(kv);//排序
         }
         //签名前参数字符串
-        final String source = join(kv.iterator(), "&") + token;
+        final String source = DigestUtils.join(kv.iterator(), "&") + token;
         return DigestUtils.md5Hex(source);
-    }
-
-    /**
-     * 将集合拼接为字符。
-     * @param iterator
-     * 集合iterator。
-     * @param sep
-     * 拼接分隔符。
-     * @return
-     * 拼接后的字符串。
-     */
-    private static String join(final Iterator<?> iterator,final String sep){
-        if(iterator == null || !iterator.hasNext()) return null;
-        final StringBuilder buf = new StringBuilder();
-        Object obj;
-        while (iterator.hasNext()){
-            obj = iterator.next();
-            if(obj == null) continue;
-            buf.append(obj).append(sep);
-        }
-        String result = buf.toString();
-        if(result.length() > 0 && result.endsWith(sep)){
-            return result.substring(0, result.length() - 1);
-        }
-        return result;
     }
 }

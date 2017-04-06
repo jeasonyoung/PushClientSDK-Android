@@ -7,6 +7,9 @@ import com.linkus.push.sdk.socket.MessageType;
  * Created by jeasonyoung on 2017/3/5.
  */
 public abstract class RequestModel extends BaseModel {
+    //设备类型-2 android
+    public static final int CURRENT_DEVICE_TYPE = 2;//android
+
     /**
      * 请求参数-设备ID字段名。
      */

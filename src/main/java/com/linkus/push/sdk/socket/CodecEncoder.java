@@ -1,6 +1,6 @@
 package com.linkus.push.sdk.socket;
 
-import com.linkus.push.sdk.data.AccessData;
+import com.linkus.push.sdk.data.IAccessConfig;
 import com.linkus.push.sdk.models.*;
 import com.linkus.push.sdk.utils.LogWrapper;
 
@@ -18,7 +18,7 @@ final class CodecEncoder extends Codec {
      * @param handler
      * 编码处理监听器。
      */
-    void encodeConnectRequest(final AccessData access, final CodecEncoderListener handler){
+    void encodeConnectRequest(final IAccessConfig access, final CodecEncoderListener handler){
         logger.debug("开始客户端发起[connect]请求处理...");
         if(access == null){
             logger.error("获取配置数据失败!");
@@ -42,7 +42,7 @@ final class CodecEncoder extends Codec {
      * @param handler
      * 编码处理监听器。
      */
-    void encodePublishAckRequest(final AccessData access, final String pushId, final CodecEncoderListener handler){
+    void encodePublishAckRequest(final IAccessConfig access, final String pushId, final CodecEncoderListener handler){
         logger.debug("开始客户端发起[publish-request]请求处理...");
         if(access == null){
             logger.error("获取配置数据失败!");
@@ -67,7 +67,7 @@ final class CodecEncoder extends Codec {
      * @param handler
      * 编码处理监听器。
      */
-    void encodeSubscribe(final AccessData access, final CodecEncoderListener handler){
+    void encodeSubscribe(final IAccessConfig access, final CodecEncoderListener handler){
         logger.debug("开始客户端发起[Subscribe-request]请求处理...");
         if(access == null){
             logger.error("获取配置数据失败!");
@@ -92,7 +92,7 @@ final class CodecEncoder extends Codec {
      * @param handler
      * 编码处理监听器。
      */
-    void encodeUnsubscribe(final AccessData access, final CodecEncoderListener handler){
+    void encodeUnsubscribe(final IAccessConfig access, final CodecEncoderListener handler){
         logger.debug("开始客户端发起[Unsubscribe-request]请求处理...");
         if(access == null){
             logger.error("获取配置数据失败!");
@@ -112,7 +112,7 @@ final class CodecEncoder extends Codec {
      * @param handler
      * 编码处理监听器。
      */
-    void encodePingRequest(final AccessData access, final CodecEncoderListener handler){
+    void encodePingRequest(final IAccessConfig access, final CodecEncoderListener handler){
         logger.debug("开始客户端发起[Ping-request]请求处理...");
         if(access == null){
             logger.error("获取配置数据失败!");
@@ -132,7 +132,7 @@ final class CodecEncoder extends Codec {
      * @param handler
      * 编码处理监听器。
      */
-    void encodeDisconnect(final AccessData access, final CodecEncoderListener handler){
+    void encodeDisconnect(final IAccessConfig access, final CodecEncoderListener handler){
         logger.debug("开始客户端发起[Disconnect-request]请求处理...");
         if(access == null){
             logger.error("获取配置数据失败!");
@@ -152,7 +152,7 @@ final class CodecEncoder extends Codec {
      * @param requestModel
      * 请求数据。
      */
-    private void buildCommonParams(final AccessData access, final RequestModel requestModel){
+    private void buildCommonParams(final IAccessConfig access, final RequestModel requestModel){
         if(access == null || requestModel == null){
             logger.error("buildCommonParams 配置数据或请求数据为空!");
             return;

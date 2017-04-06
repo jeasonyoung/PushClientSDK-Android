@@ -4,6 +4,7 @@ import com.linkus.push.sdk.socket.Codec;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
 
 /**
  * 签名加密工具类。
@@ -48,5 +49,30 @@ public class DigestUtils {
         }
 
         return out;
+    }
+
+    /**
+     * 将集合拼接为字符。
+     * @param iterator
+     * 集合iterator。
+     * @param sep
+     * 拼接分隔符。
+     * @return
+     * 拼接后的字符串。
+     */
+    public static String join(final Iterator<?> iterator, final String sep){
+        if(iterator == null || !iterator.hasNext()) return null;
+        final StringBuilder buf = new StringBuilder();
+        Object obj;
+        while (iterator.hasNext()){
+            obj = iterator.next();
+            if(obj == null) continue;
+            buf.append(obj).append(sep);
+        }
+        String result = buf.toString();
+        if(result.length() > 0 && result.endsWith(sep)){
+            return result.substring(0, result.length() - 1);
+        }
+        return result;
     }
 }
