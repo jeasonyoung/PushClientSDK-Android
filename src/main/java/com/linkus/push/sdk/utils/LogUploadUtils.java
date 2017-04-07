@@ -16,7 +16,7 @@ import java.util.*;
  * 日志文件上传工具类。
  * Created by jeasonyoung on 2017/4/5.
  */
-public final class LogUploadUtils {
+final class LogUploadUtils {
     private static final LogWrapper logger = LogWrapper.getLog(LogUploadUtils.class);
     private static final int TIMEOUT_CONNECT = 5000;
     private static final int TIMEOUT_READ    = 30000;
@@ -32,7 +32,7 @@ public final class LogUploadUtils {
      * @return
      * 上传结果。
      */
-    public static boolean uploader(final IAccessConfig config, final File file) throws Exception{
+    static boolean uploader(final IAccessConfig config, final File file) throws Exception{
         if(config == null) throw new IllegalArgumentException("config");
         if(file == null || !file.exists() || !file.isFile()) throw new IllegalArgumentException("file");
         int pos = config.getUrl().indexOf(HttpUtils.SRV_URL_SUFFIX);
@@ -90,17 +90,15 @@ public final class LogUploadUtils {
                 }
             }
             conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
-            //上传文件名称
-            final String filename = file.getName();
-            final StringBuffer strBuf = new StringBuffer();
-            strBuf.append("\r\n").append("--").append(BOUNDARY).append("\r\n")
-                    .append("Content-Disposition: form-data; name=\"")
-                    .append(filename).append("\";filename=\"").append(filename).append("\"").append("\r\n")
-                    .append("Content-Type: text/plain").append("\r\n\r\n");
+            //上传文件信息
+            final String info = "\r\n" + "--" + BOUNDARY + "\r\n"
+                             + "Content-Disposition: form-data; name=\"file\";"
+                             + "filename=\"" + file.getName()  + "\"" + "\r\n"
+                             + "Content-Type: text/plain" + "\r\n\r\n";
             //上传数据
             final OutputStream out = new DataOutputStream(conn.getOutputStream());
             //写入上传文件信息数据
-            out.write(strBuf.toString().getBytes(Codec.UTF8));
+            out.write(info.getBytes(Codec.UTF8));
             //写入上传文件数据
             byte[] buf = new byte[1024];
             //随机文件读取
