@@ -8,6 +8,7 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 日志包装器。
@@ -25,6 +26,9 @@ public final class LogWrapper {
     private static final SimpleDateFormat sdf_file = new SimpleDateFormat("yyyyMMddHH");
 
     private static File root = null;
+
+    private static final int uploader_log_file_interval = 300000;
+    private final AtomicLong lastUploaderTime = new AtomicLong(0L);//最后一次上传日志时间
 
     /**
      * 构造函数。
@@ -198,8 +202,27 @@ public final class LogWrapper {
     /**
      * 上传日志文件。
      */
-    public static void uploadLogFiles(final IAccessConfig config){
-        if(config.getDeviceToken() == null || config.getDeviceToken().length() == 0) return;
+    public void uploadLogFiles(final IAccessConfig config){
+        //获取当前时间戳
+        final long current = System.currentTimeMillis();
+        if(current - lastUploaderTime.get() < uploader_log_file_interval){
+            return;
+        }
+        //更新时间戳
+        lastUploaderTime.set(current);
+        //判断启动上传的条件
+        if(config == null){
+            Log.w(TAG,"uploadLogFiles-获取访问配置为空!");
+            return;
+        }
+        if(config.getAccount() == null || config.getAccount().length() == 0){
+            Log.w(TAG, "uploadLogFiles-获取接入帐号为空!");
+            return;
+        }
+        if(config.getDeviceToken() == null || config.getDeviceToken().length() == 0){
+            Log.w(TAG, "uploadLogFiles-获取设备ID为空!");
+            return;
+        }
         if(atomIsUploadFiles.get()) return;
         //开始执行日志文件上传
         new AsyncTask<Void,Void,Void>(){
@@ -208,7 +231,7 @@ public final class LogWrapper {
                 //重置开始上传标示
                 atomIsUploadFiles.set(true);
                 try {
-                    if(root.exists()) {//检查日志存储根目录是否存在
+                    if(root != null && root.exists()) {//检查日志存储根目录是否存在
                         final String current = sdf_file.format(new Date());
                         //搜索目录下的日志文件
                         final File[] lists = root.listFiles();
@@ -240,7 +263,7 @@ public final class LogWrapper {
                         }
                     }
                 }catch (Exception e){
-                    Log.e(TAG,"日志文件上传异常:" + e.getMessage());
+                    Log.e(TAG,"uploadLogFiles-日志文件上传异常[root:"+ root +"]:" + e.getMessage());
                 }finally {
                     //重置开始上传标示
                     atomIsUploadFiles.set(false);

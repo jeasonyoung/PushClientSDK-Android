@@ -10,7 +10,6 @@ import com.linkus.push.sdk.models.PublishModel;
 import com.linkus.push.sdk.socket.PushSocket;
 import com.linkus.push.sdk.utils.LogWrapper;
 
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -19,7 +18,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class PushClientService extends Service implements PushSocket.PushSocketListener {
     private static final LogWrapper logger = LogWrapper.getLog(PushClientService.class);
-    private static final int uploader_log_file_interval = 300000;
 
     //重启广播Action
     static final String PUSH_BROADCAST_RESTART = "push_broadcast_restart";
@@ -42,7 +40,6 @@ public final class PushClientService extends Service implements PushSocket.PushS
     private boolean isStart = false, isRun = false;
 
     private final AtomicReference<AccessData> refAccess = new AtomicReference<>();
-    private final AtomicLong lastUploaderTime = new AtomicLong(0L);//最后一次上传日志时间
 
     private PushSocket socket;
     private Messenger mMessenger;
@@ -100,12 +97,12 @@ public final class PushClientService extends Service implements PushSocket.PushS
                             break;
                         }
                         case PushSocket.ACTION_PING: {//接收心跳
-                            socket.startPing();
-                            final long current = System.currentTimeMillis();
-                            if((current - lastUploaderTime.get() > uploader_log_file_interval) && refAccess.get() != null){
-                                lastUploaderTime.set(current);
-                                LogWrapper.uploadLogFiles(refAccess.get());
+                            //启动日志上传
+                            if(refAccess.get() != null) {
+                                logger.uploadLogFiles(refAccess.get());
                             }
+                            //启动心跳
+                            socket.startPing();
                             break;
                         }
                         case PushSocket.ACTION_RECONNECT: {//接收重启
