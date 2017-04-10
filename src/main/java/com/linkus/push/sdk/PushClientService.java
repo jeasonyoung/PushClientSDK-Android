@@ -97,10 +97,6 @@ public final class PushClientService extends Service implements PushSocket.PushS
                             break;
                         }
                         case PushSocket.ACTION_PING: {//接收心跳
-                            //启动日志上传
-                            if(refAccess.get() != null) {
-                                logger.uploadLogFiles(refAccess.get());
-                            }
                             //启动心跳
                             socket.startPing();
                             break;

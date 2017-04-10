@@ -202,28 +202,17 @@ public final class LogWrapper {
     /**
      * 上传日志文件。
      */
-    public void uploadLogFiles(final IAccessConfig config){
+    public void uploadLogFiles(final UploaderLogAccessListener listener){
+        //判断是否已运行
+        if(atomIsUploadFiles.get()) return;
         //获取当前时间戳
-        final long current = System.currentTimeMillis();
-        if(current - lastUploaderTime.get() < uploader_log_file_interval){
+        final long current = System.currentTimeMillis(), diff;
+        if((diff = (current - lastUploaderTime.get())) < uploader_log_file_interval){
+            Log.d(TAG,"uploadLogFiles-日志上传未到时间周期["+ diff +" < "+ uploader_log_file_interval +"]!");
             return;
         }
         //更新时间戳
         lastUploaderTime.set(current);
-        //判断启动上传的条件
-        if(config == null){
-            Log.w(TAG,"uploadLogFiles-获取访问配置为空!");
-            return;
-        }
-        if(config.getAccount() == null || config.getAccount().length() == 0){
-            Log.w(TAG, "uploadLogFiles-获取接入帐号为空!");
-            return;
-        }
-        if(config.getDeviceToken() == null || config.getDeviceToken().length() == 0){
-            Log.w(TAG, "uploadLogFiles-获取设备ID为空!");
-            return;
-        }
-        if(atomIsUploadFiles.get()) return;
         //开始执行日志文件上传
         new AsyncTask<Void,Void,Void>(){
             @Override
@@ -237,15 +226,21 @@ public final class LogWrapper {
                         final File[] lists = root.listFiles();
                         if(lists != null && lists.length > 0){
                             final List<File> deleteFiles = new ArrayList<>();
-                            //上传文件
-                            for(File file : lists){
-                                if(!file.exists() || file.getName().contains(current)) continue;
-                                try{
-                                    if(LogUploadUtils.uploader(config, file)){
-                                        deleteFiles.add(file);
+                            //加载配置
+                            if(listener != null) {
+                                final IAccessConfig config = listener.loadAccessConfig();
+                                if(config != null) {
+                                    //上传文件
+                                    for (File file : lists) {
+                                        if (!file.exists() || file.getName().contains(current)) continue;
+                                        try {
+                                            if (LogUploadUtils.uploader(config, file)) {
+                                                deleteFiles.add(file);
+                                            }
+                                        } catch (Exception ex) {
+                                            Log.e(TAG, "uploadLogFiles-上传文件[" + file.getAbsolutePath() + "]异常:" + ex.getMessage());
+                                        }
                                     }
-                                }catch (Exception ex){
-                                    Log.e(TAG, "uploadLogFiles-上传文件["+ file.getAbsolutePath() +"]异常:" + ex.getMessage());
                                 }
                             }
                             //删除已上传成功的文件
@@ -271,5 +266,16 @@ public final class LogWrapper {
                 return null;
             }
         }.execute((Void)null);
+    }
+
+    /**
+     * 日志上传加载访问配置监听器。
+     */
+    public interface UploaderLogAccessListener{
+        /**
+         * 加载访问配置。
+         * @return 访问配置
+         */
+        IAccessConfig loadAccessConfig();
     }
 }

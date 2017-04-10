@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import com.linkus.push.sdk.PushClientService;
 import com.linkus.push.sdk.data.AccessData;
 import com.linkus.push.sdk.data.HttpRequestData;
+import com.linkus.push.sdk.data.IAccessConfig;
 import com.linkus.push.sdk.data.SocketConfig;
 import com.linkus.push.sdk.models.AckModel;
 import com.linkus.push.sdk.models.AckResult;
@@ -520,6 +521,14 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                             }
                         }
                     }
+                    //启动日志上传处理
+                    logger.debug("启动日志上传处理...");
+                    logger.uploadLogFiles(new LogWrapper.UploaderLogAccessListener(){
+                        @Override
+                        public IAccessConfig loadAccessConfig() {
+                            return listener.loadAccessConfig();
+                        }
+                    });
                 }
                 break;
             }
