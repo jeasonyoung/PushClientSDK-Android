@@ -27,7 +27,7 @@ public final class LogWrapper {
 
     private static File root = null;
 
-    private static final int uploader_log_file_interval = 300000;
+    private static final int uploader_log_file_interval = 5 * 60 * 1000;
     private final AtomicLong lastUploaderTime = new AtomicLong(0L);//最后一次上传日志时间
 
     /**
@@ -211,14 +211,14 @@ public final class LogWrapper {
             Log.d(TAG,"uploadLogFiles-日志上传未到时间周期["+ diff +" < "+ uploader_log_file_interval +"]!");
             return;
         }
+        //重置开始上传标示
+        atomIsUploadFiles.set(true);
         //更新时间戳
         lastUploaderTime.set(current);
         //开始执行日志文件上传
         new AsyncTask<Void,Void,Void>(){
             @Override
             protected Void doInBackground(Void... voids) {
-                //重置开始上传标示
-                atomIsUploadFiles.set(true);
                 try {
                     if(root != null && root.exists()) {//检查日志存储根目录是否存在
                         final String current = sdf_file.format(new Date());

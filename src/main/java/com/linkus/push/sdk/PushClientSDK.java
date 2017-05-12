@@ -36,16 +36,20 @@ public final class PushClientSDK implements Closeable {
     public PushClientSDK(final Context context) {
         if (context == null) throw new IllegalArgumentException("context");
         this.context = context;
-        LogWrapper.registerRootDir(context.getCacheDir());
+        try {
+            LogWrapper.registerRootDir(context.getCacheDir());
 
-        //启动服务
-        logger.info("start push service...");
-        context.startService(new Intent(context, PushClientService.class));
+            //启动服务
+            logger.info("start push service...");
+            context.startService(new Intent(context, PushClientService.class));
 
-        //连接服务
-        logger.info("connect push service..");
-        final Intent intent = new Intent(context, PushClientService.class);
-        context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+            //连接服务
+            logger.info("connect push service..");
+            final Intent intent = new Intent(context, PushClientService.class);
+            context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        }catch (Throwable e){
+            logger.error("PushClientSDK-init:" + e.getMessage(), e);
+        }
     }
 
     /**

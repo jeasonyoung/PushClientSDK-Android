@@ -1,9 +1,11 @@
 package com.linkus.push.sdk;
 
-import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
-import android.os.*;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
 import com.linkus.push.sdk.data.AccessData;
 import com.linkus.push.sdk.models.AckResult;
 import com.linkus.push.sdk.models.PublishModel;
@@ -35,21 +37,12 @@ public final class PushClientService extends Service implements PushSocket.PushS
     //消息内容
     static final String PUSH_BROADCAST_PARAMS_CONTENT = "content";
 
-    private final int GRAY_SERVICE_ID;
-
     private boolean isStart = false, isRun = false;
 
     private final AtomicReference<AccessData> refAccess = new AtomicReference<>();
 
     private PushSocket socket;
     private Messenger mMessenger;
-
-    /**
-     * 构造函数。
-     */
-    public PushClientService(){
-        GRAY_SERVICE_ID = (int) (System.currentTimeMillis() / 1000);
-    }
 
     @Override
     public void onCreate() {
@@ -63,19 +56,7 @@ public final class PushClientService extends Service implements PushSocket.PushS
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        logger.info("onStartCommand-(intent:"+ intent +",flags:"+ flags +", startId:"+ startId +")...");
-        try {
-            //前台服务模式处理
-            if (Build.VERSION.SDK_INT < 18) {
-                startForeground(GRAY_SERVICE_ID, new Notification());//API < 18,此方法能有效隐藏Notification上的图标
-            } else {
-                startService(new Intent(this, GrayInnerService.class));
-                startForeground(GRAY_SERVICE_ID, new Notification());
-            }
-        }catch (Exception e){
-            logger.warn("onStartCommand-启动前台守候服务模式异常:" + e.getMessage(), e);
-        }
-        logger.info("onStartCommand(start:"+ isStart +",run:"+ isRun +")...");
+        logger.info("onStartCommand-(intent:"+ intent +",flags:"+ flags +", startId:"+ startId +")=>(start:"+ isStart +",run:"+ isRun +")!");
         if(!isRun && isStart) {
             try {
                 //启动socket
@@ -312,23 +293,6 @@ public final class PushClientService extends Service implements PushSocket.PushS
             for(SDKAction sdk : values()){
                 if(sdk.val == val) return sdk;
             }
-            return null;
-        }
-    }
-
-    //给API >= 18的平台上用的灰色保活手段
-    class GrayInnerService extends Service{
-
-        @Override
-        public int onStartCommand(Intent intent, int flags, int startId) {
-            startForeground(GRAY_SERVICE_ID, new Notification());//设置为前台服务
-            stopForeground(true);//停止前台服务
-            stopSelf();
-            return super.onStartCommand(intent, flags, startId);
-        }
-
-        @Override
-        public IBinder onBind(Intent intent) {
             return null;
         }
     }
