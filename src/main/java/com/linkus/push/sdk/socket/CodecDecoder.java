@@ -27,7 +27,7 @@ public final class CodecDecoder extends Codec {
      *
      * @param listener 消息解码监听器。
      */
-    CodecDecoder(final CodecDecoderListener listener) {
+    public CodecDecoder(final CodecDecoderListener listener) {
         this.listener = listener;
         this.buffer = new ByteArrayOutputStream();
     }
@@ -37,7 +37,7 @@ public final class CodecDecoder extends Codec {
      *
      * @param data 原始字节数据。
      */
-    void addDecode(final byte[] data) {
+    public void addDecode(final byte[] data) {
         if (data == null || data.length == 0) return;
         if (header == null) {//无消息头
             synchronized (this) {
