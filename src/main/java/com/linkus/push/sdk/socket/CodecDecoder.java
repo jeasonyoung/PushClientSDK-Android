@@ -13,7 +13,7 @@ import java.util.Arrays;
  * socket消息解码器
  * Created by jeasonyoung on 2017/3/7.
  */
-final class CodecDecoder extends Codec {
+public final class CodecDecoder extends Codec {
     private static final LogWrapper logger = LogWrapper.getLog(CodecDecoder.class);
     private static final int HEAD_DATA_MIN_LEN = 5;
 
