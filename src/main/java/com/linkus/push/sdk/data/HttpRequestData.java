@@ -14,7 +14,7 @@ public class HttpRequestData extends BaseModel {
      * @param access
      * 访问配置数据。
      */
-    public HttpRequestData(final AccessData access){
+    public HttpRequestData(final IAccessConfig access){
         super();
         if(access == null) throw new IllegalArgumentException("access");
         //接入帐号

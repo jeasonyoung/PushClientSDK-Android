@@ -99,7 +99,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                 return;
             }
             //加载访问配置
-            final AccessData access = listener.loadAccessConfig();
+            final IAccessConfig access = listener.loadAccessConfig();
             if (access == null) throw new RuntimeException("加载访问配置数据失败!");
             logger.debug("access=>" + access);
             //创建请求数据
@@ -141,7 +141,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             return false;
         }
         //加载配置
-        final AccessData access = listener.loadAccessConfig();
+        final IAccessConfig access = listener.loadAccessConfig();
         if(access == null)throw new RuntimeException("load access config is null!");
         if(access.getTag() == null || access.getTag().length() == 0){
             throw new RuntimeException("tag is null or length is 0!");
@@ -162,7 +162,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             return false;
         }
         //加载配置
-        final AccessData access = listener.loadAccessConfig();
+        final IAccessConfig access = listener.loadAccessConfig();
         if(access != null) {
             //发送解除用户绑定请求
             encoder.encodeUnsubscribe(access, this);
@@ -182,7 +182,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
             return false;
         }
         //加载配置
-        final AccessData access = listener.loadAccessConfig();
+        final IAccessConfig access = listener.loadAccessConfig();
         if(access != null) {
             //发送断开socket通知
             encoder.encodeDisconnect(access, this);
@@ -261,7 +261,7 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
                 if(!result) return;
                 try{
                     //加载配置
-                    final AccessData access = listener.loadAccessConfig();
+                    final IAccessConfig access = listener.loadAccessConfig();
                     if(access == null){
                         logger.warn("start socket load access config fail!");
                         return;
@@ -626,6 +626,6 @@ public final class PushSocket implements CodecEncoder.CodecEncoderListener, Code
          * 获取访问配置数据。
          * @return 访问配置数据。
          */
-        AccessData loadAccessConfig();
+        IAccessConfig loadAccessConfig();
     }
 }
